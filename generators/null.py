@@ -85,7 +85,7 @@ def model2_table(otu_sums, samples, seq_depth, tpk):
     return array([map(float,line.split(',')) for line in lines])
 
 def model3_table(otu_sums, samples, seq_depth, tpk):
-    """Uses model2_table but subtracts median value to get higher sparsity."""
+    """Uses model2_table but subtracts mean value to get higher sparsity."""
     data = model2_table(otu_sums, samples, seq_depth, tpk)
     d = data-data.mean()
     return where(d>0,d,0)
