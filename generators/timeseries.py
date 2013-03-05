@@ -46,9 +46,9 @@ from numpy.random import shuffle
 from scipy.signal import square, sawtooth 
 from scipy.stats.distributions import uniform
 
-def generate_signal_data(alpha, phi, omega, signal_func, timepoints):
-    '''Make signal data with func and given offset, shift, and amplitude.'''
-    return alpha*signal_func(phi*(timepoints+omega))
+# def generate_signal_data(alpha, phi, omega, signal_func, timepoints):
+#     '''Make signal data with func and given offset, shift, and amplitude.'''
+#     return alpha*signal_func(phi*(timepoints+omega))
 
 def add_noise(noise_func_and_params, data):
     '''Add noise at each index to given data based on func and params.
@@ -71,7 +71,7 @@ def signal(alpha, phi, omega, signal_func, sampling_freq=100 ,lb=0, ub=2*pi):
      sampling_freq - int, number of points to generate between lb, ub.
      lb, ub - float, bonds of the signal.'''
     timepoints = linspace(lb, ub, sampling_freq)
-    return generate_signal_data(alpha, phi, omega, signal_func, timepoints)
+    return alpha*signal_func(phi*(timepoints+omega))
 
 def superimpose_signals(signal_calls, group_y_shift, noise_func_and_params):
     '''Superimpose signals on top of one another.
