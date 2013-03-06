@@ -84,7 +84,7 @@ def mutual_1d(otu1, otu2, strength):
     return motu1, motu2
 
 def mutual_nd(otus, strength):
-    '''Increase abundance of otus[-1] and otus[-1:] if all are present.
+    '''Increase abundance of otus[-1] and otus[:-1] if all are present.
     Models a situation where a mutualist interaction occurs between otu[-1] 
     and the network formed by otus[:-1]. If not all the components of the 
     network are there then mutualism doesn't occur. Strength of increase for 
