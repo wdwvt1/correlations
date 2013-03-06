@@ -158,6 +158,17 @@ def obligate_syntroph_nd(otus, strength):
     tmp = otus.all(axis=0)
     return where(tmp == True, strength*otus.mean(0), 0)
 
+def partial_obligate_syntroph_1d(otu1, otu2):
+    '''Allow otu2 only iff otu1 is present.
+    Models obligate syntrophy where presence of otu1 does not guarantee otu2.'''
+    return where(otu1, otu2, 0)
+
+def partial_obligate_syntroph_nd(otus):
+    '''Allow otus[-1] iff otus[:-1] are present. 
+    Models obligate syntrophy where presence of otus[:-1] does not guarantee
+    presence of otu[-1].'''
+    o1 = where(otus[:-1].all(0), otus[-1], 0)
+    return vstack([otus[:-1], o1])
 
 
 

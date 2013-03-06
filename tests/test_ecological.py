@@ -18,7 +18,8 @@ from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
 from generators.ecological import (amensal_1d, amensal_nd, commensal_1d,
     commensal_nd, mutual_1d, mutual_nd, parasite_1d, parasite_nd, 
-    competition_1d, competition_nd, obligate_syntroph_1d, obligate_syntroph_nd)
+    competition_1d, competition_nd, obligate_syntroph_1d, obligate_syntroph_nd,
+    partial_obligate_syntroph_1d, partial_obligate_syntroph_nd)
 from numpy import array, where
 from numpy.random import seed
 from numpy.testing import assert_array_almost_equal
@@ -141,6 +142,26 @@ class TestEcologicalGenerators(TestCase):
         obs = obligate_syntroph_nd(self.otus, strength).round(0)
         assert_array_almost_equal(exp, obs)
 
+    def test_partial_obligate_syntroph_1d(self):
+        '''Test that partial obligate syntrophic relationship made correctly.'''
+        o1 = array([0,0,0,12,6,10,1,0,0,0,0, 1,5,0,0,0,0,4,1,1])
+        o2 = array([0,3,9,1, 5,0, 0,5,7,0,50,1,0,1,2,0,0,0,6,0])
+        ex = array([0,0,0,1, 5,0, 0,0,0,0,0, 1,0,0,0,0,0,0,6,0])
+        ob = partial_obligate_syntroph_1d(o1, o2)
+        assert_array_almost_equal(ob, ex)
+
+    def test_partial_obligate_syntroph_nd(self):
+        '''Test partial obligate syntrophic relationship in nd.'''
+        otus = array([[68,3, 0,1,0,31,4,0,0,5, 0, 1,  0,1,0,0,3, 5, 1,0],
+                      [1, 34,0,0,1,6, 1,0,6,2, 4, 191,0,7,0,0,0, 0, 2,0],
+                      [0, 3, 0,0,1,0, 1,0,0,24,1, 1,  0,2,2,1,26,1, 0,4],
+                      [0, 1, 0,9,0,5, 3,0,1,0, 41,0,  4,0,8,0,4, 23,0,0]])
+        exp = array([[68,3, 0,1,0,31,4,0,0,5, 0,1,  0,1,0,0,3, 5,1,0],
+                     [1, 34,0,0,1,6, 1,0,6,2, 4,191,0,7,0,0,0, 0,2,0],
+                     [0, 3, 0,0,1,0, 1,0,0,24,1,1,  0,2,2,1,26,1,0,4],
+                     [0, 1, 0,0,0,0, 3,0,0,0, 0,0,  0,0,0,0,0, 0,0,0]])
+        obs = partial_obligate_syntroph_nd(otus)
+        assert_array_almost_equal(obs, exp)
 
 
 
