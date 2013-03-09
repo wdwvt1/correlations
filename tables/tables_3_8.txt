@@ -1,0 +1,4 @@
+There are 7 tables in this folder as part of the first release cycle. They have
+been created with a mixture of the different models outlined in generators. The
+tables do not have time series data or Lokta-Volterra data in them. They are 
+available as both .biom format and 'classic otu table format'. 
