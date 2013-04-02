@@ -41,14 +41,10 @@ o1 = make_otu([s1,s2])
 """
 
 from numpy import (array, where, sin, cos, pi, hstack, linspace, arange,
-    searchsorted)
+    searchsorted, vstack)
 from numpy.random import shuffle
 from scipy.signal import square, sawtooth 
 from scipy.stats.distributions import uniform
-
-# def generate_signal_data(alpha, phi, omega, signal_func, timepoints):
-#     '''Make signal data with func and given offset, shift, and amplitude.'''
-#     return alpha*signal_func(phi*(timepoints+omega))
 
 def add_noise(noise_func_and_params, data):
     '''Add noise at each index to given data based on func and params.
@@ -97,11 +93,11 @@ def subsample_otu_random(otu, fraction):
     inds = arange(len(otu))
     shuffle(inds)
     inds = array(sorted(inds[:int(len(otu)*fraction)]))
-    return inds, otu[inds]
+    return otu[inds]
 
 def subsample_otu_choose(otu, indices):
     '''Return given indices of otu.'''
-    return otu[array(indices)]
+    return otu[indices]
 
 def subsample_otu_evenly(otu, fraction):
     '''Subsample the otu evenly.
@@ -117,7 +113,73 @@ def subsample_otu_evenly(otu, fraction):
      as you can while preserving the right number of points.'''
     inds = searchsorted(arange(len(otu)),
         linspace(0,len(otu)-1, int(len(otu)*fraction)), side='left')
-    return inds, otu[inds]
+    return otu[inds]
+
+
+def cube_d5_indices(d1, d2, d3, d4, d5):
+    '''Return indices of 5dhypercube wtih each dim split into len(dn) parts.
+    Imagine that you are going to split each dimension into 3 parts. We can
+    visualize this with the following diagram where each vertical group of 
+    points is a dimension and each point is a location on that dimension. This
+    function will return all distinct paths through the grid below where each 
+    path goes through one location in each dimension.
+    .    .    .    .    .
+    .    .    .    .    .
+    .    .    .    .    .
+    d1   d2   d3   d4   d5
+
+    The below represents the point (2,1,2,3,3) in R5
+    3  .    .    .    x    x
+    2  x    .    x    .    .
+    1  .    x    .    .    .
+       d1   d2   d3   d4   d5
+    numpy.indices does this, but the notation is much harder for me to follow.
+    could also make this with the binary numbers up to 243?
+    '''
+    vals = []
+    for pt_d1 in d1:
+        for pt_d2 in d2:
+            for pt_d3 in d3:
+                for pt_d4 in d4:
+                    for pt_d5 in d5:
+                        vals.append([pt_d1,pt_d2,pt_d3,pt_d4,pt_d5])
+    return vals
+
+def subsample_otu_zero(otu, ss_fraction, zero_fraction):
+    '''Evenly subsample an OTU and randomly set zero_fraction entries = 0.'''
+    ss_otu = subsample_otu_evenly(otu, ss_fraction)
+    inds = arange(len(ss_otu))
+    shuffle(inds)
+    ss_otu[inds[:int(len(inds)*zero_fraction)]] = 0
+    return ss_otu
+
+def generate_otu_from_pt_in_R5(pt, wave_f, y_shift=None):
+    '''Generate an OTU sequence from a pt in R5.'''
+    freq, amp, phase_offset, noise, sampling_params = pt
+    # noise is from a uniform distribution where amp*noise controls noise level
+    noise_func_and_params = [uniform, -noise*amp, 2*noise*amp]
+    # if y_pos is none we will randomly select the y_shift for the signal
+    # between 50 percent of amplitude and 150 percent of amplitude
+    if y_shift==None:
+        y_shift = uniform.rvs(.5*amp, 1.5*amp)
+    # make the base otu + y_shift
+    base_otu = y_shift + signal(amp, freq, phase_offset, wave_f, 
+        sampling_freq=100, lb=0, ub=2*pi)
+    # add noise
+    noisy_otu = add_noise(noise_func_and_params, base_otu)
+    # subsample the otu according to the sampling_f and params
+    sampling_f = sampling_params[0]
+    return sampling_f(noisy_otu, *sampling_params[1:])
+
+def random_inds(n, k):
+    '''Return k indices randomly from arange(n) in ascending order.'''
+    tmp = arange(n) 
+    shuffle(tmp)
+    inds = tmp[:k]
+    inds.sort()
+    return inds
+
+
 
 ################################################################################
 # Functions unutilized but left in case of future need. Untested. 

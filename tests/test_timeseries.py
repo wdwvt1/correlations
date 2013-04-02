@@ -18,7 +18,8 @@ from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
 from generators.timeseries import (add_noise, signal,
     superimpose_signals, make_otu, subsample_otu_random, subsample_otu_choose,
-    subsample_otu_evenly)
+    subsample_otu_evenly, cube_d5_indices, subsample_otu_zero, 
+    generate_otu_from_pt_in_R5, random_inds)
 from numpy import pi, sin, cos, array, arange, where, hstack
 from numpy.random import seed
 from numpy.testing import assert_array_almost_equal
@@ -138,12 +139,78 @@ class TestTimeSeriesGenerator(TestCase):
         fraction = .5
         exp_inds = array([0,3,5,7,9])
         exp_otu = otu[exp_inds]
-        obs_inds, obs_otu = subsample_otu_evenly(otu, fraction)
+        obs_otu = subsample_otu_evenly(otu, fraction)
         assert_array_almost_equal(obs_otu, exp_otu)
-        assert_array_almost_equal(obs_inds, exp_inds)
 
+    def test_cube_d5_indices(self):
+        '''Test the the hypercube in R5 is generated correctly.
+        The order is as follows
+            3  .    .    .    .    .
+            2  .    .    .    .    .
+            1  x    x    x    x    x
+               d1   d2   d3   d4   d5
 
+            3  .    .    .    .    .
+            2  .    .    .    .    x
+            1  x    x    x    x    .
+               d1   d2   d3   d4   d5
 
+            3  .    .    .    .    x
+            2  .    .    .    .    .
+            1  x    x    x    x    .
+               d1   d2   d3   d4   d5
+        
+            3  .    .    .    .    .
+            2  .    .    .    x    .
+            1  x    x    x    .    x
+               d1   d2   d3   d4   d5
+
+            3  .    .    .    .    .
+            2  .    .    .    x    x
+            1  x    x    x    .    .
+               d1   d2   d3   d4   d5
+        '''
+        # only going to test specific indices
+        inds = [1,2,3]
+        obs = cube_d5_indices(inds,inds,inds,inds,inds)
+        self.assertEqual(obs[0], [1,1,1,1,1])
+        self.assertEqual(obs[14], [1,1,2,2,3])
+        self.assertEqual(obs[242], [3,3,3,3,3])
+        self.assertEqual(obs[159], [2,3,3,3,1])
+
+    def test_subsample_otu_zero(self):
+        '''Tests zeroes placed in the right location.'''
+        seed(0)
+        otu = arange(20)
+        ss_fraction = .5
+        zero_fraction = .5
+        exp_otu = subsample_otu_evenly(otu, ss_fraction)
+        exp_otu[array([1, 2, 4, 8, 9])] = 0
+        #exp_inds = array([0,2,4,6,8,10,12,14,16,18])
+        #es_otu = otu[exp_inds]
+        obs_otu = subsample_otu_zero(otu, ss_fraction, zero_fraction)
+        assert_array_almost_equal(obs_otu, exp_otu)
+
+    def test_generate_otu_from_pt_in_R5(self):
+        '''Test that an OTU is correctly generated.'''
+        seed(0)
+        pt = (2, 10, 0, .5, [subsample_otu_evenly, .5])
+        nfap = [uniform, -5, 10]
+        y_shift = 100
+        wave_f = sawtooth
+        base_otu = 100 + signal(pt[1], pt[0], pt[2], wave_f)
+        noisy_otu = add_noise(nfap, base_otu)
+        sampling_f = subsample_otu_evenly
+        exp_otu = sampling_f(noisy_otu, .5)
+        seed(0)
+        obs_otu = generate_otu_from_pt_in_R5(pt, wave_f, y_shift)
+        assert_array_almost_equal(obs_otu, exp_otu)
+
+    def test_random_inds(self):
+        '''Test that random indices are returned predictably.'''
+        seed(0)
+        exp_inds = array([1, 2, 4, 8, 9])
+        assert_array_almost_equal(random_inds(10, 5), exp_inds)
 
 if __name__ == "__main__":
     main()
