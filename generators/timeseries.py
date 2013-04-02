@@ -18,26 +18,25 @@ relationships.
 All signals take the form of:
 y_shift + alpha*signal_func(phi(theta+omega)) + noise
 
+freq = [1, 2, 3]
+amp = [1, .5, .25]
+phase = [0, .25*pi, .5*pi]
+noise = [0, .25, .5]
+adj = [[subsample_otu_evenly, .5], [subsample_otu_zero, .5, .3], 
+    [subsample_otu_zero, .5, .75]]
+q = cube_d5_indices(freq, amp, phase, noise, adj)
+otus = vstack([generate_otu_from_pt_in_R5(q[i], sin, 10) for i in range(243)])
 
-example of generating a signal
+plt.plot(arange(50), otus[0], arange(50), otus[3], arange(50), otus[6])
+plt.show()
 
-# generate the first part of the OTU signal as the sum of a square and sawtooth
-# wave. 
-gen1 = [[8, 2, 0, square],
-       [8, 2, .5*pi, sawtooth]]
-# generate the second part of the otu signal as a single sin wave. 
-gen2 = [[8, 2, 0, sin]]
-
-# noise function and params as well as the general y_shift
-nfap = [uniform, -3, 6]
-gys = 20
-
-# do signal generation
-s1 = superimpose_signals(gen1, gys, nfap)
-s2 = superimpose_signals(gen2, gys, nfap)
-
-#sum to make otu
-o1 = make_otu([s1,s2])
+This will show the 3 otus which differ only in the amount of noise they recieve. 
+To plot specific otus you have to pull out their generating index. The 
+generating index goes from 0-242. The generating index 0 corresponds to 
+parameters [subsample_otu_zero, .5, .75], 0, 0 ,1 ,1 (in ascending order). The
+generating index 1 just moves one to the right in the adj paramater. Following
+this thinking, we would have to choose inds = [0,81,162] to get the three
+otus which differ only in their frequency (because 3**4 is 81). 
 """
 
 from numpy import (array, where, sin, cos, pi, hstack, linspace, arange,
