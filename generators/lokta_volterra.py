@@ -30,19 +30,23 @@ The traditional LV model takes the following two species form:
 
 In the n-dimensional model we have equations of the form:
     
-    dxi/dt = xi * (a*x0 + b*x1 + c*x2 +...i +...n*xn) 
+    dxi/dt = xi * (alpha_i + ci1*x1 + ci2*x2 + ci3*x3 + ... ciixi + ... cin*xn) 
 
     xi - species xi
-    a,b,c... - coefficients determining interaction between xi and other species
+    alpha_i is the coefficient which provides the growth rate of species xi 
+    in the absense of interactions. basic first order. 
+    cij terms are teh coefficients of interaction between species xi and species
+    xj. cii is the coefficient of interaction of species xi with itself. this 
+    creates second order effects. 
 
-Notice that the n-dimensional equation has n-1 terms of the form j*xi*xj and 
+Notice that the n-dimensional equation has n- terms of the form j*xi*xj and 
 one term i*xi where xi, xj are species and i,j are coefficients of interaction
 between them. 
 
 To recreate the scipy tutorial data you can use the following:
 
-C = array([[1., -.1],
-           [.075, -1.5]])
+C = array([[1., 0, -.1],
+           [-1.5, 0.075, 0]])
 f = dX_dt_template(C)
 Y = lokta_volterra(f, array([10,5]), 0, 15, 1000)
 '''
@@ -54,36 +58,26 @@ def dX_dt_template(C):
     '''Create a function that scipy.integrate.odeint can use for LV models.
     The interaction matrix specifies the coefficients for each term in the 
     derivative of the given species population. All equations take the form of:
-        dxi/dt = xi * (a*x0 + b*x1 + c*x2 +...i +...n*xn) 
+    dxi/dt = xi * (alpha_i + ci1*x1 + ci2*x2 + ci3*x3 + ... ciixi + ... cin*xn) 
     coefs = 0 imply no direct interaction between species k and species i.
     Inputs:
-     interaction_matrix - nXn array.
+     interaction_matrix - nXn+1 array.
+    Outputs: 
+     A function which calculates the dxi/dt's for all species in the simulation.
+     Function is in proper format to be utilized by scipy's ode integrate. 
     '''
-    # Assume the following notation:
-    # X = [x0, x1 ... xn] vector of populations for each species
-    # C = [[a0,b0,c0,...n0],
-    #      [a1,b1,c1,...n0],
-    #              .
-    #              .
-    #              .
-    #      [an,bn,cn,...nn]]
-    # specify rows of C by Ci, entries by Cij
-    # Then:
-    # xi*(X*Ci - xi*Cii + Cii) = xi*(ai*x0 + bi*x1 + ... ni*xn - ii*xi + ii) =
-    # xi*(ai*x0 + ... ii ... + ni*xn) = dxi/dt
-    # dxi_dt = X[i]*(C[i]*X - C[i][i]*X[i] + C[i][i])
-    # we create the following matrix thats multiplied element wise rather than 
-    # with matrix multiplication. 
-    # x0     [c00,c01*x1,c02*x2,...,c0n*xn],
-    #  .     [c10*x0,c11,c12*x2,...,c1n*xn],
-    #  .             .
-    #  .  *          .
-    #  .             .
-    # xn     [cn0*x0,cn1*x1,cn2*x2,...,cnn]]
-    # sum along cols axis. X must be a 2D array because of the vagaries of 
-    # numpy elementwise multiplication and array shape.
-    #return lambda X, t=0: (array([X]).T*where(eye(C.shape[0]), C, C*X)).sum(1)
-
+    # C = coefficient of interaction matrix, size nX(n+1)
+    # C = [alpha_1, c11, c12, ..., c1n]
+    #     [   .   ,  . ,  . , ..., c2n]
+    #     [   .   ,  . ,  . , ...,  . ]
+    #     [   .   ,  . ,  . , ...,  . ]
+    #     [alpha_n, cn1, c12, ..., cnn]
+    # X = column vector of the value of each of the n species
+    # X = [x1, x2, ..., xn]
+    # Y = [1, x1, x2, ..., xn] 
+    # This function returns:
+    # X <*> (C*Y)  
+    # where * is matrix multiplication and <*> is elementwise multiplication
     return lambda X, t=0: X*array(matrix(C)*matrix(hstack((array([1]),X))).T).reshape(len(X))
 
 
