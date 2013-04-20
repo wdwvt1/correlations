@@ -30,10 +30,9 @@ class TestLVGenerator(TestCase):
     def test_dX_dt_template(self):
         '''Test that the function returned by dX_dt_template evals correctly.'''
         C = array([[.5, .6, .7],
-                   [.1, .2, 1.5],
-                   [6, .4, .4]])
-        X = array([10,20,-6])
-        exp = array([83,-156,-410.4])
+                   [.1, .2, 1.5]])
+        X = array([10,20])
+        exp = array([205,642])
         obs = dX_dt_template(C)(X)
         assert_array_almost_equal(obs, exp)
 
@@ -59,8 +58,8 @@ class TestLVGenerator(TestCase):
         X0 = array([10, 5])
         exp = integrate.odeint(dX_dt, X0, t)
         # calculate with our function
-        C = array([[1., -.1],
-                   [.075, -1.5]])
+        C = array([[1., 0, -.1],
+                   [-1.5, 0.075, 0]])
         f = dX_dt_template(C)
         Y = lokta_volterra(f, array([10,5]), 0, 15, 1000)
         assert_array_almost_equal(exp, Y.T)

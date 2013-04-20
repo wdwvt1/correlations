@@ -47,7 +47,7 @@ f = dX_dt_template(C)
 Y = lokta_volterra(f, array([10,5]), 0, 15, 1000)
 '''
 
-from numpy import array, where, eye, linspace
+from numpy import array, where, eye, linspace, matrix, hstack
 from scipy import integrate
 
 def dX_dt_template(C):
@@ -82,7 +82,11 @@ def dX_dt_template(C):
     # xn     [cn0*x0,cn1*x1,cn2*x2,...,cnn]]
     # sum along cols axis. X must be a 2D array because of the vagaries of 
     # numpy elementwise multiplication and array shape.
-    return lambda X, t=0: (array([X]).T*where(eye(C.shape[0]), C, C*X)).sum(1)
+    #return lambda X, t=0: (array([X]).T*where(eye(C.shape[0]), C, C*X)).sum(1)
+
+    return lambda X, t=0: X*array(matrix(C)*matrix(hstack((array([1]),X))).T).reshape(len(X))
+
+
 
 def lokta_volterra(dX_dt, X0, lb, ub, ts):
     '''Simulate species interactions via Lokta-Volterra model.
