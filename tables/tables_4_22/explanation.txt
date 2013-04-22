@@ -1,0 +1,8 @@
+This folder contains the corrected versions of tables 6 and 8. From the email I sent regarding this problem: 
+
+Hi all,
+
+Karoline noticed that there are small negative values (the largest of them is -2x10^-12) in tables 6 and 8. There are 21 of these values in table 6 and 23 of these values in table 8. This is caused by floating point error in the calculations for one of the table types. I made a last minute change to these tables and didn't check it well enough. I apologize for this. I have pushed the corrected version of these tables to the github repo. The only changes are that these values have been zeroed. 
+
+Will 
+
