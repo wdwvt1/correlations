@@ -1,0 +1,1 @@
+There are 21 tables contained in tables2. Available in .biom or .txt format. Contains some null tables, some Lotka-Volterra tables, some time-series tables, and some ecologically modeled tables. 
