@@ -9,4 +9,4 @@ __version__ = ".9-Dev"
 __maintainer__ = "Will Van Treuren"
 __email__ = "wdwvt1@gmail.com"
 
-__all__ = ['copula', 'ga', 'ecological', 'null']
+__all__ = ['parse']
