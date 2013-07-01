@@ -15,7 +15,7 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.copula import (copula, scipy_corr, make_symmetric,
+from correlations.generators.copula import (copula, scipy_corr, make_symmetric,
     generate_rho_matrix)
 from numpy import array
 from numpy.random import seed

@@ -16,8 +16,8 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.ga import (coerce_gene, fitness, stochastic_uniform, 
-    cross_genes, mutate_gene, var_gen, select_fittest)
+from correlations.generators.ga import (coerce_gene, fitness, 
+    stochastic_uniform, cross_genes, mutate_gene, var_gen, select_fittest)
 from numpy import cov, array
 from numpy.random import seed, normal
 from numpy.testing import assert_array_almost_equal

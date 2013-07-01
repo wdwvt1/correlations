@@ -20,7 +20,7 @@ from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from biom.parse import parse_biom_table
-from generators.ga import fitness
+from correlations.generators.ga import fitness
 from matplotlib.pylab import matshow
 from numpy.ma import masked_array
 from linecache import getline

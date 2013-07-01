@@ -16,8 +16,8 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.ecological import (amensal_1d, amensal_nd, commensal_1d,
-    commensal_nd, mutual_1d, mutual_nd, parasite_1d, parasite_nd, 
+from correlations.generators.ecological import (amensal_1d, amensal_nd, 
+    commensal_1d, commensal_nd, mutual_1d, mutual_nd, parasite_1d, parasite_nd, 
     competition_1d, competition_nd, obligate_syntroph_1d, obligate_syntroph_nd,
     partial_obligate_syntroph_1d, partial_obligate_syntroph_nd)
 from numpy import array, where

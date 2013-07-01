@@ -16,8 +16,8 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.null import (model1_otu, model1_table, model2_table,
-    model3_table, alter_table)
+from correlations.generators.null import (model1_otu, model1_table, 
+    model2_table, model3_table, alter_table)
 from numpy import array
 from numpy.random import seed
 from numpy.testing import assert_array_almost_equal

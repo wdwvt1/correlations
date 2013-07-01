@@ -16,7 +16,7 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.timeseries import (add_noise, signal,
+from correlations.generators.timeseries import (add_noise, signal,
     superimpose_signals, make_otu, subsample_otu_random, subsample_otu_choose,
     subsample_otu_evenly, cube_d5_indices, subsample_otu_zero, 
     generate_otu_from_pt_in_R5, random_inds)

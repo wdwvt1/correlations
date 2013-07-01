@@ -15,7 +15,8 @@ from shutil import rmtree
 from os.path import exists, join
 from cogent.util.unit_test import TestCase, main
 from qiime.test import initiate_timeout, disable_timeout
-from generators.lokta_volterra import (dX_dt_template, lokta_volterra)
+from correlations.generators.lokta_volterra import (dX_dt_template, 
+    lokta_volterra)
 from numpy import array, linspace
 from numpy.testing import assert_array_almost_equal
 from scipy import integrate
