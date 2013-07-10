@@ -70,7 +70,6 @@ class CorrelationCalcs(object):
         return sorted(tmp, key=itemgetter(1), reverse=True)
 
 
-
 class CoNetResults(CorrelationCalcs):
     '''Derived class CoNetResults handles parsing and specific functions.'''
     
@@ -94,8 +93,8 @@ class CoNetResults(CorrelationCalcs):
         for line in vals[1:]: #skip the header line
             [data[ind].append(val) for ind,val in enumerate(line)]
 
-        self.otu1 = data[0]
-        self.otu2 = data[1]
+        self.otu1 = list(data[0])
+        self.otu2 = list(data[1])
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
         self.interactions = data[2]
@@ -113,6 +112,8 @@ class CoNetResults(CorrelationCalcs):
             tmp = sorted(zip(methods,scores), key=itemgetter(0))
             sc = [float(score) for method,score in tmp]
             sorted_scores.append(sc)
+        # WARNING: if any scores are of the form .351 with no preceeding 0, the
+        # code will fail to capture this value.
         self.scores = array(sorted_scores).astype(float)
         self.methods = sorted_methods
 
@@ -136,20 +137,20 @@ class RMTResults(CorrelationCalcs):
         for line in vals[1:]: #skip the header line
             [data[ind].append(val) for ind,val in enumerate(line)]
         # set easy properties
-        self.otu1 = data[0]
-        self.otu2 = data[1]
+        self.otu1 = list(data[0])
+        self.otu2 = list(data[1])
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
         # Pearson score is utilized to compare these OTUs so all will have an 
         # interaction='Correlated'. Things with a negative correlation score
         # are negative interactions, so we can assign the interaction ourselves.
-        self.score = map(float,data[3])
+        self.scores = map(float,data[3])
         interactions = []
-        for i in self.score:
+        for i in self.scores:
             if i>=0:
-                interaction.append('copresence')
+                interactions.append('copresence')
             elif i<0:
-                interaction.append('mutualExclusion')
+                interactions.append('mutualExclusion')
         self.interactions =  interactions
 
         # find significance
@@ -157,7 +158,7 @@ class RMTResults(CorrelationCalcs):
         for sig in data[4]:
             sig_val = re.findall('-?[0-9]+?\.[0-9]+',sig)
             sig_vals.append(float(sig_val[0]))
-        self.sig = sig_vals
+        self.sigs = sig_vals
 
 
 class SparCCResults(CorrelationCalcs):
@@ -178,6 +179,7 @@ class SparCCResults(CorrelationCalcs):
         '''
         vals = array([line.strip().split('\t') for line in pval_lines])
         self.data = vals[1:,1:].astype(float) #avoid row,col headers
+        self.otu_ids = vals[0,1:]
         cvals = array([line.strip().split('\t') for line in corr_lines])
         self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
         self._getSignificantData(sig_lvl)
@@ -189,17 +191,12 @@ class SparCCResults(CorrelationCalcs):
         # correlation metrics are symmetric: adjust values of lower triangle  
         # be larger than sig_lvl means only upper triangle values get chosen.
         # data is nxn matrix
-        row,col = self.data.shape
+        rows,cols = self.data.shape
         # sig edges is tuple of arrays corresponding to row,col indices
         self.sig_edges = \
             ((tril(ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
-
-        # next lines recreate the OTU ids from their indices in the data. This
-        # will fail for real OTU tables since the OTUs will not be of the form
-        # o0, o1 ... in order of row,col indices. consider refactoring to pull
-        # from header of vals instead.
-        self.otu1 = map(lambda x: 'o'+str(x), self.sig_edges[0])
-        self.otu2 = map(lambda x: 'o'+str(x), self.sig_edges[1])
+        self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+        self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
         self.pvals = \
@@ -234,7 +231,6 @@ def triu_from_flattened(n, offset=0):
     return (i for i in xrange(1, n**2+1) if i%n > offset+i/n)
 
 
-
 class LSAResults(CorrelationCalcs):
     '''Derived class LSAResults handles parsing and specific functions.'''
 
@@ -264,12 +260,17 @@ class LSAResults(CorrelationCalcs):
 
         # filter_by_map indicates which column index in the input file 
         # corresponds to which method p-value for a given edge. 
+        # value_filter_map tells where the corresponding score of the method is
+        # i.e. tmp[9] is the pval for the ls score, and tmp[2] is the actual 
+        # score
         filter_map = {'ls': 9, 'ss': 18, 'sp': 13, 'gs': 16, 'gp': 11}
+        value_filter_map = {'ls': 2, 'ss': 17, 'sp': 12, 'gs': 15, 'gp': 10}
         try: 
             self.filter_ind = filter_map[filter]
+            self.value_filter_ind = value_filter_map[filter]
         except KeyError:
             raise ValueError('Must filter by one of:\n%s' % \
-                (', '.join(self.filter_methods)))
+                (', '.join(filter_map.keys())))
 
         # loi is generator of indices of lines of interest. we are assuming that
         # lines consists of one header line and then data lines
@@ -285,7 +286,7 @@ class LSAResults(CorrelationCalcs):
                 self.otu2.append(tmp[1])
                 self.pvals.append(tmp[self.filter_ind])
                 # evaluate interactions since only score given
-                if tmp[self.filter_ind] >= 0:
+                if float(tmp[self.value_filter_ind]) >= 0:
                     self.interactions.append('copresence')
                 else:
                     self.interactions.append('mutualExclusion')
@@ -295,7 +296,6 @@ class LSAResults(CorrelationCalcs):
         self.edges = zip(self.otu1, self.otu2)
         self.data = array(data)
         self.sig_otus = list(set(self.otu1).union(self.otu2))
-
 
     def _isSignificant(self, line, ind, sig_lvl):
         '''Return true if line has significant value in given index.'''

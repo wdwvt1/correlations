@@ -15,6 +15,14 @@ This code is used for generating results and plotting graphs for the various
 methods.
 '''
 
+from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
+    where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
+    repeat, empty)
+from matplotlib.pylab import matshow
+from numpy.ma import masked_array
+import matplotlib.pyplot as plt
+
+
 def hist_of_metrics(data, method_strs):
     '''Plot histograms of each methods value distributions.'''
     plt.ioff()
@@ -109,6 +117,42 @@ def node_stats(sig_nodes, bt):
         'all_otu_std':all_otu_std, 'non_sig_otu_std':ns_std, 
         'sig_otu_std':s_std}
     return res
+
+def write_node_stats(results_obj, bt, out_fp):
+    '''Write the result of node_stats(sig_nodes, bt).'''
+    num_otus = len(bt.ObservationIds)
+    connection_fraction = results_obj.connectionFraction(num_otus)
+    copresences = results_obj.copresences()
+    exclusions = results_obj.exclusions()
+    average_connectivity = results_obj.avgConnectivity()
+    node_stat_dict = node_stats(results_obj.sig_otus, bt)
+
+    lines = [\
+    'connection fraction:\t%s' % connection_fraction,
+    'copresences:\t%s' % copresences, 
+    'mutual exclusions:\t%s' % exclusions,
+    'average connectivity:\t%s' % average_connectivity,
+    'mean of all otus:\t%s' % node_stat_dict['all_otu_mean'],
+    'mean of significant otus:\t%s' % node_stat_dict['sig_otu_mean'],
+    'mean of non-significant otus:\t%s' % node_stat_dict['non_sig_otu_mean'],
+    'std of all otus:\t%s' % node_stat_dict['all_otu_std'],
+    'std of significant otus:\t%s' % node_stat_dict['sig_otu_std'],
+    'std of non-significant otus:\t%s' % node_stat_dict['non_sig_otu_std'],
+    'sparsity of all otus:\t%s' % node_stat_dict['all_otu_sparsity'],
+    'sparsity of significant otus:\t%s' % node_stat_dict['sig_otu_sparsity'],
+    'sparsity of non-significant otus:\t%s' % node_stat_dict['non_sig_otu_sparsity']]
+
+    o = open(out_fp, 'w')
+    o.writelines('\n'.join(lines))
+    o.close()
+
+
+
+
+
+
+
+
 
 def boxplot_connectivity_stats(connectivity_list, bt):
     '''See if node connectivity implies statistical difference.'''
@@ -212,7 +256,7 @@ def ga_edge_even_odd(edges):
     '''
     return all([logical_xor(float(i[1:]) % 2, float(j[1:]) % 2) for i,j in edges])
 
-def null_sig_node_locs(num_nodes, sig_nodes, start=1):
+def null_sig_node_locs(num_nodes, sig_nodes, start=0):
     '''Return location of OTUs in num_nodes.
     Assumes that num_nodes is a list like: [100,30,45,200] where each entry is 
     the maximum integer value in an OTUs name for it to have been created by
