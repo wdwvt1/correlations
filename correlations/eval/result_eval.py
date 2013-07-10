@@ -147,13 +147,6 @@ def write_node_stats(results_obj, bt, out_fp):
     o.close()
 
 
-
-
-
-
-
-
-
 def boxplot_connectivity_stats(connectivity_list, bt):
     '''See if node connectivity implies statistical difference.'''
     data = array([bt.observationData(i) for i in bt.ObservationIds])
@@ -219,7 +212,6 @@ def boxplot_connectivity_stats(connectivity_list, bt):
     sb.set_xlabel('Number of Connections')
     sb.set_ylabel('OTU Sparsity')
     #sb.tick_params(axis='x', size='x-small')
-
     plt.show()
 
 def ga_plot_edge_graphic_dissim(edges, bt, ref_gene):

@@ -233,8 +233,8 @@ class SparCCParserTests(TestCase):
         self.assertFloatEqual(exp_cvals, self.SparCCResultsObj.cvals)
 
 class LSAParserTests(TestCase):
-     '''Top level class for testing LSA Parser.'''
-
+    '''Top level class for testing LSA Parser.'''
+    
     def setUp(self):
         '''Create variables needed for the LSA tests.'''
         # all_data is all relevant data from LSA lines. each function will pull

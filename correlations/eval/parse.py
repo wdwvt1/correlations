@@ -257,6 +257,7 @@ class LSAResults(CorrelationCalcs):
         self.otu2 = []
         self.pvals = []
         self.interactions = []
+        self.scores = []
 
         # filter_by_map indicates which column index in the input file 
         # corresponds to which method p-value for a given edge. 
@@ -284,7 +285,8 @@ class LSAResults(CorrelationCalcs):
                 data.append(map(float, vals))
                 self.otu1.append(tmp[0])
                 self.otu2.append(tmp[1])
-                self.pvals.append(tmp[self.filter_ind])
+                self.pvals.append(float(tmp[self.filter_ind]))
+                self.scores.append(float(tmp[self.value_filter_ind]))
                 # evaluate interactions since only score given
                 if float(tmp[self.value_filter_ind]) >= 0:
                     self.interactions.append('copresence')
