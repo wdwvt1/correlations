@@ -354,75 +354,158 @@ def otus_from_edges_in_range(edges, lb, ub):
 ## Ecological 
 ##
 
-def eco_d2_counter(start, stop, edges, interactions):
-    '''Count the number of class1 and class 2 edges for a 2d eco relationship.
+
+def interacting_edges(start, stop, dim, edges, interactions):
+    '''Check if an ecological edge is accurately detected.
+
+    Edges will be of the form ('oX','oY') where X,Y are integers. The set of 
+    all OTUs in a given table is assumed to be sequentially numbered from 0 
+    (i.e. there exists an 'O0') to whatever integer. 
+
+    Some of the generators create relationships between groups of OTUs (pairs, 
+    triplets, etc.). In some cases these relationships are simple 
+    'one-dimentional' relationships (e.g. OX^OY -> OY+=10), and in other cases
+    they are two or more dimensions (e.g. OX^OY^...OZ -> OX,OY,...-=10). 
+
+    This function calculates for each edge if its part of a pair generated with
+    some relationship. In python, n mod m = n/m + n%m. It suffices to check that
+    an edge has the same integer part to check that it came from the same
+    relationship. There are two classes of relationships for dim >= 2 
+    generators:
+    (1) Both of the edge OTUs are on the left hand side (LHS) of the generator 
+    rule. e.g. rule = OA^OB...OY -> OZ+=K, edge = (OX,OY) for X,Y in {A,B...Y}
+    (2) One of the OTUs in the edge is in the RHS of the rule, the other is in 
+    the LHS of the rule. 
+
+    Direction of the edge is irrelevent for calculations of this function (i.e.
+    (OX,OY)=(OY,OX). This function *does* assume that edges only appear once in 
+    the input edges. 
+
     Inputs:
-     start - int, the index to start at for determining what edges should be 
-     considered. 
-     stop - int, the index to stop at for determining what edges should be
-     considered. 
-     edges - list of tuples, list of edges of form ('o1','o2).
-     interactions - list of strings, either 'copresence' or 'mutualExclusion'
-
-    class1 edges are edges of the form o1 - o2 or o2 - o1. for ecological 
-    relationships that are 2d, the otus will be grouped into blocks of 3. the 
-    first two otus act as a network, i.e. they given ecological relationship is
-    only triggered if both o1 and o2 are present. o3 is the other member of the
-    interaction, and also must be present for the relationship effect to be 
-    triggered. thus, class2 edges are o1 - o3, o3 - o1, o2 - o3, o3 - o2. 
+     start - int, starting index of OTU exhbiting relationship of interest
+      (inclusive).
+     stop - int, final index of OTU exhibiting relationship of interest 
+      (exclusive).
+     dim - int, number of OTUs in the LHS of the rule. 
+     edges - list of OTU tuples
+     interactions - list of strs, either mutualExclusion or copresence.
     '''
-    d2_i_0 = ['o%s' % s for s in arange(start,stop,3)]
-    d2_i_1 = ['o%s' % s for s in arange(start+1,stop,3)]
-    d2_i_2 = ['o%s' % s for s in arange(start+2,stop,3)]
-    # make classes of interest
-    class1 = zip(d2_i_0,d2_i_1) + zip(d2_i_1,d2_i_0)
-    class2 = zip(d2_i_0,d2_i_2) + zip(d2_i_2,d2_i_0) + zip(d2_i_1,d2_i_2) + \
-        zip(d2_i_2,d2_i_1)
+    # cis edges (LHS,LHS), trans edges (LHS,RHS or RHS,LHS), mes = mutual 
+    # exclusions, cps = copresensces 
+    cis_edges = 0
+    trans_edges = 0
+    total_detected = 0
+    cis_mes = 0
+    cis_cps = 0
+    trans_mes = 0
+    trans_cps = 0
 
-    class1_count = 0
-    class2_count = 0
-    class1_cop = 0
-    class2_cop = 0
-    class1_me = 0
-    class2_me = 0
-    total = (stop - start)/3. # total number of triplet otus generated
+    int_edges = map(lambda x: (int(x[0][1:]), int(x[1][1:])), edges)
+    for ind, edge in enumerate(int_edges):
+        o1, o2 = edge
+        interaction = interactions[ind]
+        if start <= o1 < stop and start <= o2 < stop:
+            # calculate integer parts of o1,o2
+            i1 = o1/(dim+1)
+            i2 = o2/(dim+1)
+            if i1 == i2: #same relationship
+                total_detected+=1
+                r1 = o1%(dim+1)
+                r2 = o2%(dim+1)
+                if r1 != dim and r2 != dim: #relationship is cis
+                    cis_edges+=1
+                    if interaction == 'copresence':
+                        cis_cps+=1
+                    else: #interaction == 'mutualExclusion'
+                        cis_mes+=1
+                else: # r1 == dim or r2 == dim
+                    trans_edges+=1
+                    if interaction == 'copresence':
+                        trans_cps+=1
+                    else: #interaction == 'mutualExclusion'
+                        trans_mes+=1
 
-    for interaction, edge in zip(interactions,edges):
-        if edge in class1:
-            class1_count += 1
-            if interaction == 'copresence':
-                class1_cop += 1
-            elif interaction == 'mutualExclusion':
-                class1_me += 1
-        elif edge in class2:
-            class2_count += 1
-            if interaction == 'copresence':
-                class2_cop += 1
-            elif interaction == 'mutualExclusion':
-                class2_me += 1
-    return (class1_count, class2_count, total, class1_cop, class1_me,
-        class2_cop, class2_me)
+    return (total_detected, cis_edges, cis_cps, cis_mes, trans_edges, trans_cps,
+        trans_mes)
 
-def eco_d1_counter(start, stop, edges, interactions):
-    '''Like other eco counters. This one is for 1d (pairwise) relationships.'''
-    d2_i_0 = ['o%s' % s for s in arange(start,stop,2)]
-    d2_i_1 = ['o%s' % s for s in arange(start+1,stop,2)]
-    # make classes of interest. only one class because its a pairwise 
-    # interaction
-    class1_cop = 0
-    class1_me = 0
-    class1_count = 0
 
-    total = (stop - start)/2. # total num of doublet otus generated
-    class1 = zip(d2_i_0,d2_i_1) + zip(d2_i_1,d2_i_0)
-    for interaction,edge in zip(interactions,edges):
-        if edge in class1:
-            class1_count += 1
-            if interaction == 'copresence':
-                class1_cop += 1
-            elif interaction == 'mutualExclusion':
-                class1_me += 1
-    return class1_count, total, class1_cop, class1_me
+####################
+####################
+####################
+####################
+# ELIMINATED BY NEWER FUNCTIONS
+# RETAINED FOR INTEROPERABILITY
+
+
+# def eco_d2_counter(start, stop, edges, interactions):
+#     '''Count the number of class1 and class 2 edges for a 2d eco relationship.
+#     Inputs:
+#      start - int, the index to start at for determining what edges should be 
+#      considered. 
+#      stop - int, the index to stop at for determining what edges should be
+#      considered. 
+#      edges - list of tuples, list of edges of form ('o1','o2).
+#      interactions - list of strings, either 'copresence' or 'mutualExclusion'
+
+#     class1 edges are edges of the form o1 - o2 or o2 - o1. for ecological 
+#     relationships that are 2d, the otus will be grouped into blocks of 3. the 
+#     first two otus act as a network, i.e. they given ecological relationship is
+#     only triggered if both o1 and o2 are present. o3 is the other member of the
+#     interaction, and also must be present for the relationship effect to be 
+#     triggered. thus, class2 edges are o1 - o3, o3 - o1, o2 - o3, o3 - o2. 
+#     '''
+#     d2_i_0 = ['o%s' % s for s in arange(start,stop,3)]
+#     d2_i_1 = ['o%s' % s for s in arange(start+1,stop,3)]
+#     d2_i_2 = ['o%s' % s for s in arange(start+2,stop,3)]
+#     # make classes of interest
+#     class1 = zip(d2_i_0,d2_i_1) + zip(d2_i_1,d2_i_0)
+#     class2 = zip(d2_i_0,d2_i_2) + zip(d2_i_2,d2_i_0) + zip(d2_i_1,d2_i_2) + \
+#         zip(d2_i_2,d2_i_1)
+
+#     class1_count = 0
+#     class2_count = 0
+#     class1_cop = 0
+#     class2_cop = 0
+#     class1_me = 0
+#     class2_me = 0
+#     total = (stop - start)/3. # total number of triplet otus generated
+
+#     for interaction, edge in zip(interactions,edges):
+#         if edge in class1:
+#             class1_count += 1
+#             if interaction == 'copresence':
+#                 class1_cop += 1
+#             elif interaction == 'mutualExclusion':
+#                 class1_me += 1
+#         elif edge in class2:
+#             class2_count += 1
+#             if interaction == 'copresence':
+#                 class2_cop += 1
+#             elif interaction == 'mutualExclusion':
+#                 class2_me += 1
+#     return (class1_count, class2_count, total, class1_cop, class1_me,
+#         class2_cop, class2_me)
+
+# def eco_d1_counter(start, stop, edges, interactions):
+#     '''Like other eco counters. This one is for 1d (pairwise) relationships.'''
+#     d2_i_0 = ['o%s' % s for s in arange(start,stop,2)]
+#     d2_i_1 = ['o%s' % s for s in arange(start+1,stop,2)]
+#     # make classes of interest. only one class because its a pairwise 
+#     # interaction
+#     class1_cop = 0
+#     class1_me = 0
+#     class1_count = 0
+
+#     total = (stop - start)/2. # total num of doublet otus generated
+#     class1 = zip(d2_i_0,d2_i_1) + zip(d2_i_1,d2_i_0)
+#     for interaction,edge in zip(interactions,edges):
+#         if edge in class1:
+#             class1_count += 1
+#             if interaction == 'copresence':
+#                 class1_cop += 1
+#             elif interaction == 'mutualExclusion':
+#                 class1_me += 1
+#     return class1_count, total, class1_cop, class1_me
 
 # def eco_paired_between_class(edges, start, stop, dim):
 #     '''Stats on 3 node graphs that are not cycles and edge nodes are related.
