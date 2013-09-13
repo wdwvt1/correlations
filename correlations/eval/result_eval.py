@@ -428,6 +428,111 @@ def interacting_edges(start, stop, dim, edges, interactions):
     return (total_detected, cis_edges, cis_cps, cis_mes, trans_edges, trans_cps,
         trans_mes)
 
+def null_sig_node_locs_timeseries(list_of_lists, sig_nodes):
+    '''Return location of OTUs in num_nodes.
+    Assumes that num_nodes is a list like: [100,30,45,200] where each entry is 
+    the maximum integer value in an OTUs name for it to have been created by
+    a given method. 
+    start is 1 or 0 depending on which OTU is the starting OTU number, i.e. o1 
+    or o0. 
+    '''
+    sn = array([float(i[1:]) for i in sig_nodes]) #avoid 'o'
+    locs = []
+    for i, l in enumerate(list_of_lists):
+        for s in sn:
+            for indx in l:
+                if indx == s:
+                    locs.append(i)
+    return locs  
+
+def null_edge_directionality_timeseries(otu1, otu2, num_nodes, list_of_lists):
+    '''Calculate inter-method edge significance. 
+    Returns a len(num_nodes)*len(num_nodes) matrix where the i,j entry is the
+    number of significant edges whose first otu came from distribution i and 
+    whose second otu came from distribution j.
+    edges1 and edges2 are lists of the otus locs in order - done for each otu pair
+    denoted as significant, because otherwise locs mix up in one large list.'''
+    res = zeros((len(num_nodes), len(num_nodes)))
+    for i in xrange(0,len(otu1)):
+        otu_1 = [otu1[i]]
+        otu_2 = [otu2[i]]
+        edge1 = null_sig_node_locs_timeseries(list_of_lists, otu_1)
+        edge2 = null_sig_node_locs_timeseries(list_of_lists, otu_2)
+        #some i,j = (5,0) and i,j = (0,5) are between the same two distributions: sorted for upper triangle values
+        for i,j in zip(edge1,edge2):
+            a,k = sorted((i,j))
+            res[a][k] += 1  
+    return res
+
+    def timeseries_indices(freq, amp, phase, noise, adj, q):
+    '''Return list of indices for all values in argument list in order'''
+    all_indices = []
+    freq_div = len(q)/len(freq)
+    freq_nodes = []
+    freq_list = [[] for x in xrange(len(freq))]
+    for i in range((len(q)/freq_div)+1): 
+        freq_nodes.append(freq_div*i)
+    for x in range(len(freq)):
+        a = freq_nodes[x]
+        b = freq_nodes[x+1]
+        freq_list[x].extend(range(a,b))
+
+    all_indices.extend(freq_list)
+
+    amp_div = freq_div/len(amp)
+    amp_nodes = []
+    amp_list = [[] for x in xrange(len(amp))]
+    for i in range((len(q)/amp_div)+1):
+        amp_nodes.append(amp_div*i)
+    for i in range(len(freq)):
+        for j in arange(i+1, len(amp_nodes),len(freq)):
+            a = amp_nodes[j-1]
+            b = amp_nodes[j]
+            amp_list[i].extend(range(a,b))
+
+    all_indices.extend(amp_list)
+
+    phase_div = amp_div/len(phase)
+    phase_nodes = []
+    phase_list = [[] for x in xrange(len(phase))]
+    for i in range((len(q)/phase_div)+1):
+        phase_nodes.append(phase_div*i)
+    for i in range(len(phase)):
+        for j in arange(i+1, len(phase_nodes),len(amp)):
+            a = phase_nodes[j-1]
+            b = phase_nodes[j]
+            phase_list[i].extend(range(a,b))
+
+    all_indices.extend(phase_list)
+
+    noise_div = phase_div/len(noise)
+    noise_nodes = []
+    noise_list = [[] for x in xrange(len(noise))]
+    for i in range((len(q)/noise_div)+1):
+        noise_nodes.append(noise_div*i)
+    for i in range(len(noise)):
+        for j in arange(i+1, len(noise_nodes),len(phase)):
+            a = noise_nodes[j-1]
+            b = noise_nodes[j]
+            noise_list[i].extend(range(a,b))
+
+    all_indices.extend(noise_list)
+
+    adj_div = noise_div/len(adj)
+    adj_nodes = []
+    adj_list = [[] for x in xrange(len(adj))]
+    for i in range((len(q)/adj_div)+1):
+        adj_nodes.append(adj_div*i)
+    for i in range(len(adj)):
+        for j in arange(i+1, len(adj_nodes),len(noise)):
+            a = adj_nodes[j-1]
+            b = adj_nodes[j]
+            adj_list[i].extend(range(a,b))
+
+    all_indices.extend(adj_list)
+
+    return all_indices
+
 
 ####################
 ####################
