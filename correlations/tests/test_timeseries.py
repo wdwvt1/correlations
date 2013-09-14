@@ -19,7 +19,7 @@ from qiime.test import initiate_timeout, disable_timeout
 from correlations.generators.timeseries import (add_noise, signal,
     superimpose_signals, make_otu, subsample_otu_random, subsample_otu_choose,
     subsample_otu_evenly, cube_d5_indices, subsample_otu_zero, 
-    generate_otu_from_pt_in_R5, random_inds)
+    generate_otu_from_pt_in_R5, random_inds, make_pop_growth_func)
 from numpy import pi, sin, cos, array, arange, where, hstack
 from numpy.random import seed
 from numpy.testing import assert_array_almost_equal
@@ -211,6 +211,21 @@ class TestTimeSeriesGenerator(TestCase):
         seed(0)
         exp_inds = array([1, 2, 4, 8, 9])
         assert_array_almost_equal(random_inds(10, 5), exp_inds)
+
+    def test_make_pop_growth_func(self):
+        '''Test that the lambda returned by make_pop_growth_func is correct.'''
+        K = 1000
+        N_0 = 50
+        r = .01
+        # hand calculated results
+        exp = array([ 50.        ,  50.47714317,  50.95859541,  51.44439095,
+            51.93456422,  52.42914982,  52.92818253,  53.4316973 ,
+            53.93972929,  54.4523138 ])
+        _f = make_pop_growth_func(K,N_0,r)
+        obs = _f(arange(10))
+        self.assertFloatEqual(obs, exp)
+
+
 
 if __name__ == "__main__":
     main()

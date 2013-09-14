@@ -40,7 +40,7 @@ otus which differ only in their frequency (because 3**4 is 81).
 """
 
 from numpy import (array, where, sin, cos, pi, hstack, linspace, arange,
-    searchsorted, vstack)
+    searchsorted, vstack, e)
 from numpy.random import shuffle
 from scipy.signal import square, sawtooth 
 from scipy.stats.distributions import uniform
@@ -59,14 +59,28 @@ def add_noise(noise_func_and_params, data):
 def signal(alpha, phi, omega, signal_func, sampling_freq=100 ,lb=0, ub=2*pi):
     '''Make a signal. 
     Inputs:
-     alpha - float, amplitude factor.
-     phi - float, phase_shift.
+     alpha - float, amplitude factor. Set to 1 if you do not intend to modify
+      the amplitude of the signal at all. Set to 0 to get uniform 0 signal. 
+     phi - float, phase_shift factor. Set to 1 if you do not intend to modify 
+      the frequency at all. Set to 0 to get uniform signal_func(t_0) signal.
      omega - float, phase_offset.
      signal_func - function used to generate the signal. 
      sampling_freq - int, number of points to generate between lb, ub.
      lb, ub - float, bonds of the signal.'''
     timepoints = linspace(lb, ub, sampling_freq)
     return alpha*signal_func(phi*(timepoints+omega))
+
+def make_pop_growth_func(K, N_0, r):
+    '''Create function for calculating logistic population growth given params.
+    Inputs:
+     K - numeric, carrying capacity of the population.
+     N_0 - numeric, population at time 0. 
+     r - Malthusian paramter, population growth rate.
+    Example usage with signal function:
+    _f = make_pop_growth_func(1000,50,.01)
+    signal(1,1,0,_f)
+    '''
+    return lambda t: K/(1.+((K/N_0 - 1.0)*e**(-r*t)))
 
 def superimpose_signals(signal_calls, group_y_shift, noise_func_and_params):
     '''Superimpose signals on top of one another.
@@ -177,8 +191,6 @@ def random_inds(n, k):
     inds = tmp[:k]
     inds.sort()
     return inds
-
-
 
 ################################################################################
 # Functions unutilized but left in case of future need. Untested. 
