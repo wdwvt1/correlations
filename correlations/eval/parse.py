@@ -15,7 +15,8 @@ import re
 from operator import itemgetter 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty)
+    repeat, empty, floor, ceil, hstack, tril_indices)
+from numpy.ma import masked_array as ma
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
@@ -308,4 +309,80 @@ class LSAResults(CorrelationCalcs):
         '''
         return self.data[:, data_index]
 
+
+class NaiveResults(CorrelationCalcs):
+    '''Derived class handles calculations for naive correlation method.'''
+
+    def __init__(self, cval_lines, pval_lines, sig_lvl, empirical=False):
+        '''Init self by parsing cvals and calculating sig links.'''
+        vals = array([line.strip().split('\t') for line in pval_lines])
+        self.data = vals[1:,1:].astype(float) #avoid row,col headers
+        self.otu_ids = vals[0,1:]
+        cvals = array([line.strip().split('\t') for line in cval_lines])
+        self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
+        self._getSignificantData(sig_lvl, empirical)
+        self._getLPSAndInteractions()
+
+    def _getSignificantData(self, sig_lvl, empirical):
+        '''Find which edges significant at passed level and set self properties.
+        '''
+        rows,cols = self.data.shape #rows = cols
+        if empirical:
+            mask = zeros((rows,cols))
+            mask[tril_indices(rows,0)] = 1 #preparing mask
+            cvals = self.cdata[triu_indices(rows,1)]
+            cvals.sort()
+            alpha = sig_lvl/2.
+            lb = cvals[floor(alpha*len(cvals))]
+            ub = cvals[-ceil(alpha*len(cvals))]
+            mdata = ma(self.cdata, mask)
+            # because of the floor and ceil calculations we used >= for the 
+            # upper and lower bound calculations. as an example, assume you have
+            # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
+            # values on each side. Since we don't know what the pvalue is for 
+            # the 2.5th value in the list (it DNE), we round down to the 2nd 
+            # 2nd value for the lower bound, and round up to the 98th value for
+            # the upper bound.
+            upper_sig_edges = where(mdata>=ub,1,0).nonzero()
+            lower_sig_edges = where(mdata<=lb,1,0).nonzero()
+            e1 = hstack([upper_sig_edges[0], lower_sig_edges[0]])
+            e2 = hstack([upper_sig_edges[1], lower_sig_edges[1]])
+            self.sig_edges = (e1,e2)
+            self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+            self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+            self.sig_otus = list(set(self.otu1+self.otu2))
+            self.edges = zip(self.otu1, self.otu2)
+            self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
+                self.sig_edges[1])]
+        else:
+            # correlation metrics are symmetric: adjust values of lower triangle  
+            # to be larger than sig_lvl means only upper triangle values get 
+            # chosen.
+            # data is nxn matrix
+            # sig edges is tuple of arrays corresponding to row,col indices
+            self.sig_edges = \
+                ((tril(ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
+            self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+            self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+            self.sig_otus = list(set(self.otu1+self.otu2))
+            self.edges = zip(self.otu1, self.otu2)
+            self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
+                self.sig_edges[1])]
+
+    def _getLPSAndInteractions(self):
+        '''Find linearized pearson scores given current significant edges.'''
+        self.cvals = \
+            [self.cdata[i][j] for i,j in zip(self.sig_edges[0],self.sig_edges[1])]
+        interactions = []
+        for i in self.cvals:
+            if i>=0:
+                interactions.append('copresence')
+            elif i<0:
+                interactions.append('mutualExclusion')
+        self.interactions =  interactions
+
+    def changeSignificance(self, sig_lvl, empirical):
+        '''Recalculate all self properties at a new significance level.'''
+        self._getSignificantData(sig_lvl, empirical)
+        self._getLPSAndInteractions()
 
