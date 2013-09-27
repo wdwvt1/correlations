@@ -28,11 +28,13 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
      fisher_z_transform, bootstrapped, kendall.
     '''
     data = array([bt.observationData(i) for i in bt.ObservationIds])
-    ccs = zeros(data.shape)
-    ps = zeros(data.shape)
+    r,c = data.shape
+    ccs = zeros((r,r))
+    ps = zeros((r,r))
     test_fn = CORRELATION_TEST_CHOICES[corr_method]
-    for o1 in range(data.shape[0]):
-        for o2 in range(o1+1, data.shape[0]):
+    for o1 in range(r):
+        print o1
+        for o2 in range(o1+1,r):
             cc = test_fn(data[o1], data[o2])
             ccs[o1][o2] = cc
             # assign correlation pvalues
@@ -43,13 +45,12 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
     # write values
     header = '#OTU ID\t'+'\t'.join(bt.ObservationIds)
     clines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ccs[i])) \
-        for i in range(data.shape[0])]
+        for i in range(r)]
     plines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ps[i])) \
-        for i in range(data.shape[0])]
+        for i in range(r)]
     o = open(cval_fp, 'w')
     o.writelines('\n'.join(clines))
     o.close()
     o = open(pval_fp, 'w')
     o.writelines('\n'.join(plines))
     o.close()
-
