@@ -16,7 +16,7 @@ Tests parsers.
 
 from cogent.util.unit_test import TestCase, main
 from correlations.eval.parse import (CorrelationCalcs, CoNetResults, RMTResults,
-    SparCCResults, LSAResults, triu_from_flattened) 
+    SparCCResults, LSAResults, NaiveResults, triu_from_flattened) 
 from biom.parse import parse_biom_table
 from biom.table import table_factory
 from numpy import array
@@ -90,19 +90,31 @@ LSA_LINES = [\
 'o3\to2\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3',
 'o3\to3\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3']
 
+NAIVE_PVAL_LINES = [\
+'#OTU ID\to1\to2\to3\to4\to5\to6\to7\to8\to9\to10\n',
+'o1\t0.0\t0.206434225923\t0.622991821571\t0.260517055327\t0.676050675514\t0.00521400441251\t0.408067313969\t0.946415552616\t0.946909870319\t0.766811229219\n',
+'o2\t0.0\t0.0\t0.864396799495\t0.720947558122\t0.936234977663\t0.955233632835\t0.38334045641\t0.665532585852\t0.262485596226\t0.815959028953\n',
+'o3\t0.0\t0.0\t0.0\t0.0878748237431\t0.321231600405\t0.981083070404\t0.896267086014\t0.186545651526\t0.847738459608\t0.307348720519\n',
+'o4\t0.0\t0.0\t0.0\t0.0\t0.301054456679\t0.192261343941\t0.726585535447\t0.653247092948\t0.748275657427\t0.218444842777\n',
+'o5\t0.0\t0.0\t0.0\t0.0\t0.0\t0.888162448983\t0.4543059837\t0.839730912896\t0.104990268968\t0.00795219600018\n',
+'o6\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.283874533257\t0.637920551021\t0.655114604327\t0.75567723783\n',
+'o7\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.748113327024\t0.0172690561322\t0.864886524572\n',
+'o8\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.766117284199\t0.617472511472\n',
+'o9\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.800251026852\n',
+'o10\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0']
 
-
-
-
-
-
-# class CorrelationCalcs(TestCase):
-#     '''Test base class correlation object.'''
-
-#     def setUp(self):
-#         '''Create variables needed for testing base class of CorrelationCalcs.
-#         '''
-
+NAIVE_CVAL_LINES = [\
+'#OTU ID\to1\to2\to3\to4\to5\to6\to7\to8\to9\to10\n',
+'o1\t0.0\t0.444265009199\t-0.183703495193\t-0.40136437161\t0.156635423487\t0.784068817317\t-0.302882153153\t0.0253970414374\t-0.0251625044885\t-0.111617772775\n',
+'o2\t0.0\t0.0\t0.0644592524687\t-0.134191846009\t0.0302290277995\t-0.0212141508977\t-0.318065610507\t0.161950668081\t-0.399893913221\t-0.0877433121303\n',
+'o3\t0.0\t0.0\t0.0\t-0.56834723307\t0.358282750767\t0.00896170476124\t0.0492385385968\t0.461519932778\t-0.0724438545352\t0.367756741918\n',
+'o4\t0.0\t0.0\t0.0\t0.0\t-0.372119766329\t-0.456463557331\t0.131399092367\t-0.168189387492\t0.120702688296\t-0.43427312006\n',
+'o5\t0.0\t0.0\t0.0\t0.0\t0.0\t-0.0531030469782\t0.275507536817\t-0.0762901337041\t0.546045014206\t0.762915065103\n',
+'o6\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t-0.384259859372\t0.176020718545\t-0.167238874122\t-0.117069038616\n',
+'o7\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t-0.120782471357\t0.716252313528\t-0.0642248448104\n',
+'o8\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t-0.111957030226\t-0.186558256664\n',
+'o9\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0953429339494\n',
+'o10\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0']
 
 
 class CoNetParserTests(TestCase):
@@ -270,6 +282,84 @@ class LSAParserTests(TestCase):
         self.assertEqual(exp_interactions, LSAResultsObj.interactions)
         self.assertEqual(exp_filter_ind, LSAResultsObj.filter_ind)
         self.assertEqual(exp_value_filter_ind, LSAResultsObj.value_filter_ind)
+
+class NaiveResultsTests(TestCase):
+    '''Test that naive results are being properly parsed.'''
+
+    def setUp(self):
+        '''Create variables/data need for this test.'''
+        self.NaiveResultsObj1 = NaiveResults(NAIVE_CVAL_LINES, NAIVE_PVAL_LINES,
+            .2, empirical=False)
+        self.NaiveResultsObj2 = NaiveResults(NAIVE_CVAL_LINES, NAIVE_PVAL_LINES,
+            .2, empirical=True)
+
+    def test_getSignificantData(self):
+        '''Test that data is returned appropriately.'''
+        # test with empirical = false, NaiveResultsObj1
+        exp_pdata = array([[0.,0.20643423,0.62299182,0.26051706,0.67605068,
+            0.005214,0.40806731,0.94641555,0.94690987,0.76681123],
+            [0.,0.,0.8643968,0.72094756,0.93623498,
+            0.95523363,0.38334046,0.66553259,0.2624856,0.81595903],
+            [0.,0.,0.,0.08787482,0.3212316,
+            0.98108307,0.89626709,0.18654565,0.84773846,0.30734872],
+            [0.,0.,0.,0.,0.30105446,
+            0.19226134,0.72658554,0.65324709,0.74827566,0.21844484],
+            [0.,0.,0.,0.,0.,
+            0.88816245,0.45430598,0.83973091,0.10499027,0.0079522],
+            [0.,0.,0.,0.,0.,
+            0.,0.28387453,0.63792055,0.6551146,0.75567724],
+            [0.,0.,0.,0.,0.,
+            0.,0.,0.74811333,0.01726906,0.86488652],
+            [0.,0.,0.,0.,0.,
+            0.,0.,0.,0.76611728,0.61747251],
+            [0.,0.,0.,0.,0.,
+            0.,0.,0.,0.,0.80025103],
+            [0.,0.,0.,0.,0.,
+            0.,0.,0.,0.,0.]])
+        exp_cdata = array([[ 0.        ,  0.44426501, -0.1837035 , -0.40136437,  0.15663542,
+             0.78406882, -0.30288215,  0.02539704, -0.0251625 , -0.11161777],
+           [ 0.        ,  0.        ,  0.06445925, -0.13419185,  0.03022903,
+            -0.02121415, -0.31806561,  0.16195067, -0.39989391, -0.08774331],
+           [ 0.        ,  0.        ,  0.        , -0.56834723,  0.35828275,
+             0.0089617 ,  0.04923854,  0.46151993, -0.07244385,  0.36775674],
+           [ 0.        ,  0.        ,  0.        ,  0.        , -0.37211977,
+            -0.45646356,  0.13139909, -0.16818939,  0.12070269, -0.43427312],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+            -0.05310305,  0.27550754, -0.07629013,  0.54604501,  0.76291507],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+             0.        , -0.38425986,  0.17602072, -0.16723887, -0.11706904],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+             0.        ,  0.        , -0.12078247,  0.71625231, -0.06422484],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+             0.        ,  0.        ,  0.        , -0.11195703, -0.18655826],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+             0.        ,  0.        ,  0.        ,  0.        ,  0.09534293],
+           [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
+             0.        ,  0.        ,  0.        ,  0.        ,  0.        ]])
+        self.assertFloatEqual(self.NaiveResultsObj1.data, exp_pdata)
+        self.assertFloatEqual(self.NaiveResultsObj1.cdata, exp_cdata)
+        sig_edges = (array([0,2,2,3,4,4,6]), array([5,3,7,5,8,9,8]))
+        otu1 = ['o%s' % (i+1) for i in sig_edges[0]]
+        otu2 = ['o%s' % (i+1) for i in sig_edges[1]]
+        sig_otus = list(set(otu1+otu2))
+        edges = zip(otu1, otu2)
+        pvals = [exp_pdata[i][j] for i,j in zip(sig_edges[0],sig_edges[1])]
+        interactions = ['copresence', 'copresence', 'mutualExclusion', 
+            'copresence', 'mutualExclusion', 'copresence']
+        self.assertEqual(sig_edges, self.NaiveResultsObj1.sig_edges)
+        self.assertEqual(otu1, self.NaiveResultsObj1.otu1)
+        self.assertEqual(otu2, self.NaiveResultsObj1.otu2)
+        self.assertEqual(set(sig_otus), 
+            set(self.NaiveResultsObj1.sig_otus))
+        self.assertEqual(edges, self.NaiveResultsObj1.edges)
+        self.assertFloatEqual(pvals, self.NaiveResultsObj1.pvals)
+
+
+
+
+
+
+
 
 
     # TO DO: 

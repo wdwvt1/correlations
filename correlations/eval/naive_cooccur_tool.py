@@ -9,13 +9,8 @@ __maintainer__ = "Will Van Treuren"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
-from qiime.pycogent_backports.test import (assign_correlation_pval, 
-    fisher_z_transform, bonferroni_correction, benjamini_hochberg_step_down, 
-    spearmans_rho, pearson, kendalls_tau)
-
-from qiime.otu_significance import (CORRELATION_TEST_CHOICES, 
-    CORRELATION_PVALUE_CHOICES)
-
+from qiime.pycogent_backports.test import (assign_correlation_pval)
+from qiime.otu_significance import (CORRELATION_TEST_CHOICES)
 from numpy import array, zeros
 
 """
@@ -46,7 +41,7 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
                 v1=data[o1], v2=data[o2])
             ps[o1][o2] = pval
     # write values
-    header = 'OTU_ID\t'+'\t'.join(bt.ObservationIds)
+    header = '#OTU ID\t'+'\t'.join(bt.ObservationIds)
     clines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ccs[i])) \
         for i in range(data.shape[0])]
     plines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ps[i])) \
