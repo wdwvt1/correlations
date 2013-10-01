@@ -33,15 +33,17 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
     ps = zeros((r,r))
     test_fn = CORRELATION_TEST_CHOICES[corr_method]
     for o1 in range(r):
-        print o1
         for o2 in range(o1+1,r):
             cc = test_fn(data[o1], data[o2])
             ccs[o1][o2] = cc
             # assign correlation pvalues
-            pval = assign_correlation_pval(cc, len(data[o1]), 
-                pval_assignment_method, permutations=1000, perm_test_fn=test_fn,
-                v1=data[o1], v2=data[o2])
-            ps[o1][o2] = pval
+            if pval_assignment_method == None:
+                pval[o1][o2] = 1.0
+            else:
+                pval = assign_correlation_pval(cc, len(data[o1]), 
+                    pval_assignment_method, permutations=1000, 
+                    perm_test_fn=test_fn, v1=data[o1], v2=data[o2])
+                ps[o1][o2] = pval
     # write values
     header = '#OTU ID\t'+'\t'.join(bt.ObservationIds)
     clines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ccs[i])) \
@@ -54,3 +56,5 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
     o = open(pval_fp, 'w')
     o.writelines('\n'.join(plines))
     o.close()
+
+

@@ -235,7 +235,7 @@ def triu_from_flattened(n, offset=0):
 class LSAResults(CorrelationCalcs):
     '''Derived class LSAResults handles parsing and specific functions.'''
 
-    def __init__(self, lines, filter, sig_lvl):
+    def __init__(self, lines, filter, sig_lvl, rtype='redundant'):
         '''Initialize self by parsing inputs lines.
 
         The parsing for LSA has to be done carefully because the output tables 
@@ -251,6 +251,17 @@ class LSAResults(CorrelationCalcs):
         [4,5] Shifted Pearson score, Shifted Pearson p-val
         [6,7] Global Spearman score, Global Spearman p-val
         [8,9] Shifted Spearman score, Shifted Spearman p-val
+
+        Inputs:
+         lines - list of strs, lines of the LSA output. 
+         filter - str, one of 'ls', 'ss', 'sp', 'gs', 'gp' which determines 
+         which value to use for filtration. 
+         sig_lvl - float, value to use as the score for filtering out non-sig
+         edges.
+         rtype - str, either 'redundant' or 'unique'. 'redundant' indicates that
+         the lines in the output file have both ox, oy and oy, ox. that means 
+         the file is n**2 lines long (n is num otus). if 'unique' file only 
+         has ox,oy and num lines is n(n-1)/2.
         '''
         # set up properties we need later
         data = []
@@ -277,7 +288,10 @@ class LSAResults(CorrelationCalcs):
         # loi is generator of indices of lines of interest. we are assuming that
         # lines consists of one header line and then data lines
         num_otus = int((len(lines)-1)**.5)
-        loi = triu_from_flattened(num_otus,offset=0)
+        if rtype=='redundant':
+            loi = triu_from_flattened(num_otus,offset=0)
+        elif rtype=='unique':
+            loi = range(0,len(lines)-1)
         for i in loi:
             tmp = lines[i+1].strip().split('\t')
             if self._isSignificant(tmp, self.filter_ind, sig_lvl):

@@ -389,6 +389,10 @@ def interacting_edges(start, stop, dim, edges, interactions):
      dim - int, number of OTUs in the LHS of the rule. 
      edges - list of OTU tuples
      interactions - list of strs, either mutualExclusion or copresence.
+
+    WARNING: this function only works for relationships where there is one RHS
+    OTU. If there is more than 1 RHS OTU, than there will be silent errors in 
+    the calculations.
     '''
     # cis edges (LHS,LHS), trans edges (LHS,RHS or RHS,LHS), mes = mutual 
     # exclusions, cps = copresensces 
@@ -412,6 +416,8 @@ def interacting_edges(start, stop, dim, edges, interactions):
                 total_detected+=1
                 r1 = o1%(dim+1)
                 r2 = o2%(dim+1)
+                # WARNING: If a function is introduced that has more than 1 RHS
+                # OTU this will give the wrong result.
                 if r1 != dim and r2 != dim: #relationship is cis
                     cis_edges+=1
                     if interaction == 'copresence':
@@ -464,7 +470,7 @@ def null_edge_directionality_timeseries(otu1, otu2, num_nodes, list_of_lists):
             res[a][k] += 1  
     return res
 
-    def timeseries_indices(freq, amp, phase, noise, adj, q):
+def timeseries_indices(freq, amp, phase, noise, adj, q):
     '''Return list of indices for all values in argument list in order'''
     all_indices = []
     freq_div = len(q)/len(freq)
