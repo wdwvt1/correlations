@@ -71,7 +71,7 @@ SPARCC_CVAL_LINES = [\
 'o9\t-0.042625977\t-0.130767713\t-0.080476622\t-0.119698252\t-0.067847301\t-0.375335961\t-0.036058815\t0.188817447\t0.107634175\t1\t0.285243205',
 'o10\t-0.052934052\t0.100322858\t-0.045902642\t-0.224474732\t-0.115678103\t-0.185103934\t0.002439413\t0.135742427\t-0.033746075\t0.285243205\t1']
 
-LSA_LINES = [\
+LSA_LINES_REDUNDANT = [\
 'X\tY\tLS\tlowCI\tupCI\tXs\tYs\tLen\tDelay\tP\tPCC\tPpcc\tSPCC\tPspcc\tDspcc\tSCC\tPscc\tSSCC\tPsscc\tDsscc\tQ\tQpcc\tQspcc\tQscc\tQsscc\tXi\tYi',
 'o0\to0\t1\t1\t1\t1\t1\t50\t0\t0\t1\t0\t1\t0\t0\t1\t0\t1\t0\t0\t0\t0\t0\t0\t0\t1\t1',
 'o0\to1\t0.238642\t0.238642\t0.238642\t23\t23\t18\t0\t0.358318\t-0.063483\t0.661401\t-0.063483\t0.661401\t0\t0.038752\t0.788822\t0.038752\t0.788822\t0\t1\t0.991798\t0.991798\t0.996933\t0.996933\t1\t2',
@@ -89,6 +89,15 @@ LSA_LINES = [\
 'o3\to1\t0.142968\t0.142968\t0.142968\t21\t21\t25\t0\t0.931414\t-0.000984\t0.994591\t-0.000984\t0.994591\t0\t-0.026074\t0.857087\t-0.026074\t0.857087\t0\t1\t0.993453\t0.993453\t0.998875\t0.998875\t1\t11',
 'o3\to2\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3',
 'o3\to3\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3']
+
+LSA_LINES_UNIQUE = [\
+'X\tY\tLS\tlowCI\tupCI\tXs\tYs\tLen\tDelay\tP\tPCC\tPpcc\tSPCC\tPspcc\tDspcc\tSCC\tPscc\tSSCC\tPsscc\tDsscc\tQ\tQpcc\tQspcc\tQscc\tQsscc\tXi\tYi',
+'o0\to1\t0.238642\t0.238642\t0.238642\t23\t23\t18\t0\t0.358318\t-0.063483\t0.661401\t-0.063483\t0.661401\t0\t0.038752\t0.788822\t0.038752\t0.788822\t0\t1\t0.991798\t0.991798\t0.996933\t0.996933\t1\t2',
+'o0\to2\t-0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3',
+'o0\to3\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3',
+'o1\to2\t-0.142261\t-0.142261\t-0.142261\t1\t1\t50\t0\t0.931414\t-0.24658\t0.084303\t-0.24658\t0.084303\t0\t-0.144106\t0.317046\t-0.144106\t0.317046\t0\t1\t0.991798\t0.991798\t0.993064\t0.993064\t1\t6',
+'o1\to3\t0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3',
+'o2\to3\t-0.29343\t0.29343\t0.29343\t2\t2\t48\t0\t0.153532\t0.270707\t0.057243\t0.270707\t0.057243\t0\t0.247059\t0.083798\t0.247059\t0.083798\t0\t1\t0.98568\t0.98568\t0.982603\t0.982603\t1\t3']
 
 NAIVE_PVAL_LINES = [\
 '#OTU ID\to1\to2\to3\to4\to5\to6\to7\to8\to9\to10\n',
@@ -259,10 +268,34 @@ class LSAParserTests(TestCase):
             [0.29343,0.153532,0.270707,0.057243,0.270707,0.057243,0.247059,0.083798,0.247059,0.083798],
             [-0.29343,0.153532,0.270707,0.057243,0.270707,0.057243,0.247059,0.083798,0.247059,0.083798]])
 
-    def test_self_properties_ls(self):
+    def test_self_properties_redundant(self):
         '''Test properties like edges, otus, data, when filterd by LS pvals.'''
-        LSAResultsObj = LSAResults(LSA_LINES, filter='ls', sig_lvl=.2)
-        
+        LSAResultsObj = LSAResults(LSA_LINES_REDUNDANT, filter='ls', sig_lvl=.2,
+            rtype='redundant')
+        exp_data = self.all_data[array([1,2,4,5])]
+        exp_otu1 = ['o0', 'o0', 'o1', 'o2']
+        exp_otu2 = ['o2', 'o3', 'o3', 'o3']
+        exp_pvals = [0.153532, 0.153532, 0.153532, 0.153532]
+        exp_interactions = ['mutualExclusion', 'copresence', 'copresence', 
+            'mutualExclusion']
+        exp_filter_ind = 9
+        exp_value_filter_ind = 2
+        exp_edges = zip(exp_otu1, exp_otu2)
+        exp_sig_otus = list(set(exp_otu1).union(exp_otu2))
+
+        self.assertTrue((exp_data == LSAResultsObj.data).all())
+        self.assertEqual(exp_otu1, LSAResultsObj.otu1)
+        self.assertEqual(exp_otu2, LSAResultsObj.otu2)
+        self.assertEqual(set(exp_sig_otus), set(LSAResultsObj.sig_otus))
+        self.assertEqual(exp_edges, LSAResultsObj.edges)
+        self.assertEqual(exp_interactions, LSAResultsObj.interactions)
+        self.assertEqual(exp_filter_ind, LSAResultsObj.filter_ind)
+        self.assertEqual(exp_value_filter_ind, LSAResultsObj.value_filter_ind)
+
+    def test_self_properties_unique(self):
+        '''Test properties are correct when non-redundant input is supplied.'''
+        LSAResultsObj = LSAResults(LSA_LINES_UNIQUE, filter='ls', sig_lvl=.2,
+            rtype='unique')
         exp_data = self.all_data[array([1,2,4,5])]
         exp_otu1 = ['o0', 'o0', 'o1', 'o2']
         exp_otu2 = ['o2', 'o3', 'o3', 'o3']
