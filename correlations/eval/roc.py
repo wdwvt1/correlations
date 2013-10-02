@@ -108,20 +108,25 @@ def roc(TP, IT, TT, E):
     spec = TN/float(TN+FP) 
     return sens, spec
 
-def plot_roc(specificity_pts, sensitivity_pts, pvals):
-    '''plots a ROC curve and saves if save is a path'''
-    fig = plt.figure()
-    plt.plot(1-specificity_pts, sensitivity_pts, 'g-', 
-        label='ROC Points', alpha = .5)
-    plt.plot(1-specificity_pts, sensitivity_pts, 'gs', markersize=10,alpha = .5)
-    plt.plot(linspace(0,1,1000),linspace(0,1,1000), 'k-', markersize=1, 
-        label='Baseline', alpha = .5)
-    [plt.text(1- specificity_pts[i], sensitivity_pts[i], map(str, pvals)[i]) for i in range(len(pvals))]
-    plt.legend()
-    plt.grid()
-    plt.title('ROC Curve')
+def plot_roc(specificity_pts, sensitivity_pts, pvals, lbl, c, pval_labels=True,
+    ms=4):
+    '''plots a ROC curve.'''
+    #fig = plt.figure()
+    plt.plot(1-specificity_pts, sensitivity_pts, color=c, markerfacecolor=c, 
+        markersize=ms,  marker='s', linewidth=1.0, label=lbl, alpha = .5)
+    if pval_labels:
+        [plt.text(1- specificity_pts[i], sensitivity_pts[i], \
+            map(str, pvals)[i]) for i in range(len(pvals))]
+
+def finish_roc_plot(title):
+    plt.title(title)
     plt.xlabel('1 - Specificity')
     plt.ylabel('Sensitivity')
+    plt.grid(True)
+    plt.plot([0,1],[0,1],'k-', label='Baseline', alpha = .5)
+    plt.legend(loc=4)
+    plt.xlim(-.02,1.02)
+    plt.ylim(-.02,1.02)
     plt.show()
 
 
