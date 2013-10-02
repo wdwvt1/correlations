@@ -37,8 +37,8 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
             cc = test_fn(data[o1], data[o2])
             ccs[o1][o2] = cc
             # assign correlation pvalues
-            if pval_assignment_method == None:
-                pval[o1][o2] = 1.0
+            if pval_assignment_method == 'None':
+                ps[o1][o2] = 1.0
             else:
                 pval = assign_correlation_pval(cc, len(data[o1]), 
                     pval_assignment_method, permutations=1000, 

@@ -15,7 +15,7 @@ import re
 from operator import itemgetter 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty, floor, ceil, hstack, tril_indices)
+    repeat, empty, floor, ceil, hstack, tril_indices, inf)
 from numpy.ma import masked_array as ma
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
@@ -195,7 +195,7 @@ class SparCCResults(CorrelationCalcs):
         rows,cols = self.data.shape
         # sig edges is tuple of arrays corresponding to row,col indices
         self.sig_edges = \
-            ((tril(ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
+            ((tril(10*ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
@@ -375,7 +375,7 @@ class NaiveResults(CorrelationCalcs):
             # data is nxn matrix
             # sig edges is tuple of arrays corresponding to row,col indices
             self.sig_edges = \
-                ((tril(ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
+                ((tril(10*ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
             self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
             self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
             self.sig_otus = list(set(self.otu1+self.otu2))
