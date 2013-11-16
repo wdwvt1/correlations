@@ -22,6 +22,7 @@ def roc_edge_count(start, stop, lhs_dim, rhs_dim, obs_edges, true_edge_type):
     This code counts the number of edges that are true positives (TP), truly 
     correlated (IT), and are positive (whether true positive or false positive, 
     TT). 
+    TP = test returns positive and actually is correlated 
 
     Inputs:
      start - int, the inclusive lower bound of the numerical part of the OTUs 
@@ -83,6 +84,7 @@ def roc_edge_count(start, stop, lhs_dim, rhs_dim, obs_edges, true_edge_type):
     if true_edge_type=='any':
         IT = groups*(lhs_dim+rhs_dim)*(lhs_dim+rhs_dim-1)/2.
     TT = len(obs_edges)
+    print TP, IT, TT
     return TP, IT, TT
 
 def roc(TP, IT, TT, E):
@@ -108,10 +110,22 @@ def roc(TP, IT, TT, E):
     spec = TN/float(TN+FP) 
     return sens, spec
 
-def plot_roc(specificity_pts, sensitivity_pts, pvals, lbl, c, pval_labels=True,
+def plot_roc(specificity_pts, sensitivity_pts, pvals, lbl, c, pval_labels=False,
     ms=4):
-    '''plots a ROC curve.'''
-    #fig = plt.figure()
+    '''Plot a ROC curve.
+
+    Inputs:
+     specificty_pts - list/arr of numeric values produced by roc.
+     sensitivity_pts - list/arr of numeric values produced by roc.
+     pvals - list/arr of numeric values used in calculations. must be in the 
+     same order as the sensitivity and specificity pts that were calculated from
+     them. 
+     lbl - str, the lbl you want for the plotted data series. 
+     c - str, matplotlib color for points and line for this data series. 
+     pvals_labels - boolean, if true will plot the pvals above their 
+     corresponding points.
+     ms - int, size of the pts.
+    '''
     plt.plot(1-specificity_pts, sensitivity_pts, color=c, markerfacecolor=c, 
         markersize=ms,  marker='s', linewidth=1.0, label=lbl, alpha = .5)
     if pval_labels:
@@ -119,6 +133,7 @@ def plot_roc(specificity_pts, sensitivity_pts, pvals, lbl, c, pval_labels=True,
             map(str, pvals)[i]) for i in range(len(pvals))]
 
 def finish_roc_plot(title):
+    '''Finalize ROC curves to make them more attractive/informative.'''
     plt.title(title)
     plt.xlabel('1 - Specificity')
     plt.ylabel('Sensitivity')

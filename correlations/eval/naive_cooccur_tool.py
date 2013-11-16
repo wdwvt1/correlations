@@ -57,4 +57,3 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
     o.writelines('\n'.join(plines))
     o.close()
 
-
