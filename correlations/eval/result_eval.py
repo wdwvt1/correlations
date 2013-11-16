@@ -482,7 +482,6 @@ def timeseries_indices(freq, amp, phase, noise, adj, q):
         a = freq_nodes[x]
         b = freq_nodes[x+1]
         freq_list[x].extend(range(a,b))
-
     all_indices.extend(freq_list)
 
     amp_div = freq_div/len(amp)
@@ -490,12 +489,11 @@ def timeseries_indices(freq, amp, phase, noise, adj, q):
     amp_list = [[] for x in xrange(len(amp))]
     for i in range((len(q)/amp_div)+1):
         amp_nodes.append(amp_div*i)
-    for i in range(len(freq)):
-        for j in arange(i+1, len(amp_nodes),len(freq)):
+    for i in range(len(amp)):
+        for j in arange(i+1, len(amp_nodes),len(amp)):
             a = amp_nodes[j-1]
             b = amp_nodes[j]
             amp_list[i].extend(range(a,b))
-
     all_indices.extend(amp_list)
 
     phase_div = amp_div/len(phase)
@@ -504,11 +502,10 @@ def timeseries_indices(freq, amp, phase, noise, adj, q):
     for i in range((len(q)/phase_div)+1):
         phase_nodes.append(phase_div*i)
     for i in range(len(phase)):
-        for j in arange(i+1, len(phase_nodes),len(amp)):
+        for j in arange(i+1, len(phase_nodes),len(phase)):
             a = phase_nodes[j-1]
             b = phase_nodes[j]
             phase_list[i].extend(range(a,b))
-
     all_indices.extend(phase_list)
 
     noise_div = phase_div/len(noise)
@@ -517,11 +514,10 @@ def timeseries_indices(freq, amp, phase, noise, adj, q):
     for i in range((len(q)/noise_div)+1):
         noise_nodes.append(noise_div*i)
     for i in range(len(noise)):
-        for j in arange(i+1, len(noise_nodes),len(phase)):
+        for j in arange(i+1, len(noise_nodes),len(noise)):
             a = noise_nodes[j-1]
             b = noise_nodes[j]
             noise_list[i].extend(range(a,b))
-
     all_indices.extend(noise_list)
 
     adj_div = noise_div/len(adj)
@@ -530,13 +526,12 @@ def timeseries_indices(freq, amp, phase, noise, adj, q):
     for i in range((len(q)/adj_div)+1):
         adj_nodes.append(adj_div*i)
     for i in range(len(adj)):
-        for j in arange(i+1, len(adj_nodes),len(noise)):
+        for j in arange(i+1, len(adj_nodes),len(adj)):
             a = adj_nodes[j-1]
             b = adj_nodes[j]
             adj_list[i].extend(range(a,b))
 
     all_indices.extend(adj_list)
-
     return all_indices
 
 
