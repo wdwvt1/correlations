@@ -22,6 +22,7 @@ def roc_edge_count(start, stop, lhs_dim, rhs_dim, obs_edges, true_edge_type):
     This code counts the number of edges that are true positives (TP), truly 
     correlated (IT), and are positive (whether true positive or false positive, 
     TT). 
+    TP = test returns positive and actually is correlated 
 
     Inputs:
      start - int, the inclusive lower bound of the numerical part of the OTUs 
@@ -83,6 +84,7 @@ def roc_edge_count(start, stop, lhs_dim, rhs_dim, obs_edges, true_edge_type):
     if true_edge_type=='any':
         IT = groups*(lhs_dim+rhs_dim)*(lhs_dim+rhs_dim-1)/2.
     TT = len(obs_edges)
+    print TP, IT, TT
     return TP, IT, TT
 
 def roc(TP, IT, TT, E):

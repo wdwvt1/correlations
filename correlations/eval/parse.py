@@ -15,7 +15,7 @@ import re
 from operator import itemgetter 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty, floor, ceil, hstack, tril_indices, inf)
+    repeat, empty, floor, ceil, hstack, tril_indices, inf, unique)
 from numpy.ma import masked_array as ma
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
@@ -195,7 +195,7 @@ class SparCCResults(CorrelationCalcs):
         rows,cols = self.data.shape
         # sig edges is tuple of arrays corresponding to row,col indices
         self.sig_edges = \
-            ((tril(10*ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
+            ((tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl).nonzero()
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
@@ -344,12 +344,19 @@ class NaiveResults(CorrelationCalcs):
         if empirical:
             mask = zeros((rows,cols))
             mask[tril_indices(rows,0)] = 1 #preparing mask
-            cvals = self.cdata[triu_indices(rows,1)]
-            cvals.sort()
+            # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
+            # cvals.sort()
+            cvals = unique(self.cdata[triu_indices(rows,-1)])
             alpha = sig_lvl/2.
-            lb = cvals[floor(alpha*len(cvals))]
-            ub = cvals[-ceil(alpha*len(cvals))]
+            lb = round(cvals[floor(alpha*len(cvals))],7)
+            ub = round(cvals[-ceil(alpha*len(cvals))],7)
+            if sig_lvl==0.:
+                lb = -inf
+                ub = inf
             mdata = ma(self.cdata, mask)
+            if lb==ub:
+                # overcount is going to happen 
+                print 'lb, ub: %s %s' % (lb, ub), (mdata>=ub).sum(), (mdata<=lb).sum(), (mdata==lb).sum(), (mdata==ub).sum(), lb==ub
             # because of the floor and ceil calculations we used >= for the 
             # upper and lower bound calculations. as an example, assume you have
             # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
@@ -368,6 +375,8 @@ class NaiveResults(CorrelationCalcs):
             self.edges = zip(self.otu1, self.otu2)
             self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
                 self.sig_edges[1])]
+            #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
+            #print alpha, lb, ub, kfhf
         else:
             # correlation metrics are symmetric: adjust values of lower triangle  
             # to be larger than sig_lvl means only upper triangle values get 
@@ -375,13 +384,15 @@ class NaiveResults(CorrelationCalcs):
             # data is nxn matrix
             # sig edges is tuple of arrays corresponding to row,col indices
             self.sig_edges = \
-                ((tril(10*ones((rows, cols)),0)+self.data)<sig_lvl).nonzero()
+                ((tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl).nonzero()
             self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
             self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
             self.sig_otus = list(set(self.otu1+self.otu2))
             self.edges = zip(self.otu1, self.otu2)
             self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
                 self.sig_edges[1])]
+            #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, self.sig_edges[0][:10], self.sig_edges[1][:10]
+
 
     def _getLPSAndInteractions(self):
         '''Find linearized pearson scores given current significant edges.'''
