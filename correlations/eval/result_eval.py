@@ -17,7 +17,7 @@ methods.
 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty)
+    repeat, empty, apply_along_axis)
 from matplotlib.pylab import matshow
 from numpy.ma import masked_array
 import matplotlib.pyplot as plt
@@ -671,3 +671,147 @@ def rmt_hist_of_metrics(data, method_str='Pearson'):
     sb.set_xlabel('%s scores.' % method_str)
     sb.set_ylabel('Occurrences.')
     plt.show()
+
+def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
+    title):
+    '''Graph hist env pulse.
+
+    WARNING, depending on where the OTUS start this function might have a 
+    problem.'''
+    o1s = array([float(i[1:]) for i in otus1]) #avoid 'o'
+    o2s = array([float(i[1:]) for i in otus2]) #avoid 'o'
+
+    tmp = vstack([o1s, o2s])
+
+    def _classify_interaction_type(arr_slice):
+        '''Function to apply along axis.'''
+        return (arr_slice>=num_signals).sum()
+
+    def _identify_time_lag(arr_slice):
+        '''Identify the time lag between the signals in arr_slice.'''
+        return int(abs(arr_slice[0] - arr_slice[1]) % num_signals)
+
+    interaction_type = apply_along_axis(_classify_interaction_type, 0, tmp)
+    time_lag = apply_along_axis(_identify_time_lag, 0, tmp)
+    direction = array(pos_neg)=='copresence'
+
+    # cuts off the [0] entry of bincount since this entry is where things which
+    # do not have the correct direction or the correct interaction_type get 
+    # sent. 
+    # plot signal signal coocurrences 
+    ssc = bincount((interaction_type==0)*time_lag*direction, 
+        minlength=signal_len+1)[1:]
+    # plot signal signal mutual exclusions 
+    ssme = bincount((interaction_type==0)*time_lag*~direction, 
+        minlength=signal_len+1)[1:]
+    # plot envelope envelope coocurrences 
+    eec = bincount((interaction_type==2)*time_lag*direction, 
+        minlength=signal_len+1)[1:]
+    # plot envelope envelope mutual exclusions 
+    eeme = bincount((interaction_type==2)*time_lag*~direction, 
+        minlength=signal_len+1)[1:]
+    # time_lag + 1 is key because the signal and envelope are offset by 200 
+    # so we could have o1s[x] = 1, o2s[x] = 201 and the time_lag would be 0 (
+    # which is correct) but that would cause it to be uncounted even if
+    # direction and interaction type were nonzero. this means we have to move 
+    # each bin back when plotting for each of these however. 
+    # plot signal envelope coocurrences 
+    sec = bincount((interaction_type==1)*(time_lag+1)*direction,
+        minlength=signal_len+1)[1:]
+    # plot signal envelope mutual exclusions 
+    seme = bincount((interaction_type==1)*(time_lag+1)*~direction, 
+        minlength=signal_len+1)[1:]
+
+    l = arange(signal_len)
+    w = 1/6.
+    plt.bar(left=l, height=ssc, width=w, color='b')
+    plt.bar(left=l+w, height=ssme, width=w, color='r')
+    plt.bar(left=l+2*w, height=eec, width=w, color='g')
+    plt.bar(left=l+3*w, height=eeme, width=w, color='orange')
+    plt.bar(left=l+4*w, height=sec, width=w, color='c')
+    plt.bar(left=l+5*w, height=sec, width=w, color='m')
+    
+    plt.xlabel('Time lag')
+    plt.ylabel('Counts correlated OTUs (pval<.05)')
+    plt.title(title)
+    plt.tight_layout()
+    plt.show()
+
+    plt.plot(l, ssc, color='b', linestyle='-', linewidth=2.0, alpha=.6, 
+        label='Signal-Signal: rho > 0')
+    plt.plot(l, ssme, color='r', linestyle='-', linewidth=2.0, alpha=.6,
+        label='Signal-Signal: rho < 0')
+    plt.plot(l, eec, color='g', linestyle='-', linewidth=2.0, alpha=.6,
+        label='Envelope-Envelope: rho > 0')
+    plt.plot(l, eeme, color='orange', linestyle='-', linewidth=2.0, alpha=.6,
+        label='Envelope-Envelope: rho < 0')
+    plt.plot(l, sec, color='c', linestyle='-', linewidth=2.0, alpha=.6,
+        label='Envelope-Signal: rho > 0')
+    plt.plot(l, seme, color='m', linestyle='-', linewidth=2.0, alpha=.6,
+        label='Envelope-Signal: rho < 0')
+    
+    plt.legend(loc='best', prop={'size':'small'})
+    plt.xlabel('Time lag')
+    plt.ylabel('Counts correlated OTUs (pval<.001)')
+    plt.title(title)
+    plt.grid()
+    plt.tight_layout() # fix cutting off the tic labels
+    plt.show()
+
+    return (ssc, ssme, eec, eeme, sec, seme, interaction_type, time_lag, 
+        direction)
+
+
+def hist_pulse_envelope_shifts(otus1, otus2, title):
+    sn_otu1 = array([float(i[1:]) for i in otus1]) #avoid 'o'
+    sn_otu2 = array([float(i[1:]) for i in otus2]) #avoid 'o'
+
+    signal_otu1 = []
+    signal_otu2 = []
+    envelope_otu1 = []
+    envelope_otu2 = []
+    sig_env_otu1 = []
+    sig_env_otu2 = []
+
+    for index,otu in enumerate(sn_otu1):
+        if otu < 200 and sn_otu2[index] < 200:
+            signal_otu1.append(sn_otu1[index])
+            signal_otu2.append(sn_otu2[index])
+        elif otu >= 200 and (sn_otu2[index] >= 200):
+            envelope_otu1.append(sn_otu1[index])
+            envelope_otu2.append(sn_otu2[index])
+        else:
+            sig_env_otu1.append(sn_otu1[index])
+            sig_env_otu2.append(sn_otu2[index])
+
+    signal_timediffs = []
+    envelope_timediffs = []
+    sig_env_timediffs = []
+
+    if len(signal_otu1) == 0:
+        signal_timediffs = [0]
+    else:
+        signal_timediffs = [abs(a-b) for a,b in zip(signal_otu1,signal_otu2)]
+
+    if len(envelope_otu1) ==0:
+        envelope_timediffs = [0]
+    else:
+        envelope_timediffs = [abs(a-b) for a,b in zip(envelope_otu1,envelope_otu2)]
+    
+    if len(sig_env_otu1) ==0:
+        sig_env_timediffs = [0]
+    else:
+        sig_env_timediffs = [abs(abs(a-b)-200) for a,b in zip(sig_env_otu1,sig_env_otu2)]
+        print len(sig_env_otu1) # + len(envelope_timediffs) + len(signal_timediffs)
+    plt.figure()
+
+    n, bins, patches = plt.hist( [signal_timediffs,envelope_timediffs,sig_env_timediffs], 30, histtype='bar', color=['crimson', 'burlywood', 'chartreuse'], label=['pulse', 'envelope', 'pulse_envelope'])
+    plt.legend()
+    plt.xticks()
+    plt.xlabel('Time differences between significantly correlated otus [arbitrary units]')
+    plt.ylabel('Counts')
+    plt.title(title)
+    plt.tight_layout() # fix cutting off the tic labels
+    plt.show()
+    return (array(signal_timediffs), array(envelope_timediffs),
+        array(sig_env_timediffs))
