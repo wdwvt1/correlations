@@ -850,13 +850,14 @@ def shared_pairs(results_objects):
 
 def plot_shared_pairs(spairs, num_tests):
     '''Make a simple bar plot showing number of shared pairs.'''
-    counts = [(spairs==i).sum() for i in range(1,num_tests+1)]
-    heights = map(lambda x: x/float(spairs.sum()), counts)
+    counts = array([(spairs==i).sum() for i in range(1,num_tests+1)])
+    heights = counts/counts.sum().astype(float)
     left = arange(num_tests)
     width = 1
     plt.bar(left, heights, width)
     plt.ylabel('% of total edges shared by X rarefactions')
     plt.xlabel('Rarefactions')
     plt.xticks(left+.5, left+1)
+    plt.yticks(arange(21)*.05)
     plt.grid(True)
     plt.show()
