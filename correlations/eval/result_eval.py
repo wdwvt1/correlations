@@ -17,11 +17,10 @@ methods.
 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty, apply_along_axis)
+    repeat, empty, apply_along_axis, triu)
 from matplotlib.pylab import matshow
 from numpy.ma import masked_array
 import matplotlib.pyplot as plt
-
 
 def hist_of_metrics(data, method_strs):
     '''Plot histograms of each methods value distributions.'''
@@ -695,21 +694,25 @@ def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
     time_lag = apply_along_axis(_identify_time_lag, 0, tmp)
     direction = array(pos_neg)=='copresence'
 
-    # cuts off the [0] entry of bincount since this entry is where things which
+    # set [0] entry of bincount to 0 since this entry is where things which
     # do not have the correct direction or the correct interaction_type get 
     # sent. 
     # plot signal signal coocurrences 
     ssc = bincount((interaction_type==0)*time_lag*direction, 
-        minlength=signal_len+1)[1:]
+        minlength=signal_len)
+    ssc[0] = 0
     # plot signal signal mutual exclusions 
     ssme = bincount((interaction_type==0)*time_lag*~direction, 
-        minlength=signal_len+1)[1:]
+        minlength=signal_len)
+    ssme[0] = 0
     # plot envelope envelope coocurrences 
     eec = bincount((interaction_type==2)*time_lag*direction, 
-        minlength=signal_len+1)[1:]
+        minlength=signal_len)
+    eec[0] = 0
     # plot envelope envelope mutual exclusions 
     eeme = bincount((interaction_type==2)*time_lag*~direction, 
-        minlength=signal_len+1)[1:]
+        minlength=signal_len)
+    eeme[0] = 0
     # time_lag + 1 is key because the signal and envelope are offset by 200 
     # so we could have o1s[x] = 1, o2s[x] = 201 and the time_lag would be 0 (
     # which is correct) but that would cause it to be uncounted even if
@@ -723,36 +726,38 @@ def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
         minlength=signal_len+1)[1:]
 
     l = arange(signal_len)
-    w = 1/6.
-    plt.bar(left=l, height=ssc, width=w, color='b')
-    plt.bar(left=l+w, height=ssme, width=w, color='r')
-    plt.bar(left=l+2*w, height=eec, width=w, color='g')
-    plt.bar(left=l+3*w, height=eeme, width=w, color='orange')
-    plt.bar(left=l+4*w, height=sec, width=w, color='c')
-    plt.bar(left=l+5*w, height=sec, width=w, color='m')
+    # w = 1/6.
+    # plt.bar(left=l, height=ssc, width=w, color='b')
+    # plt.bar(left=l+w, height=ssme, width=w, color='r')
+    # plt.bar(left=l+2*w, height=eec, width=w, color='g')
+    # plt.bar(left=l+3*w, height=eeme, width=w, color='orange')
+    # plt.bar(left=l+4*w, height=sec, width=w, color='c')
+    # plt.bar(left=l+5*w, height=sec, width=w, color='m')
     
-    plt.xlabel('Time lag')
-    plt.ylabel('Counts correlated OTUs (pval<.05)')
-    plt.title(title)
-    plt.tight_layout()
-    plt.show()
+    # plt.xlabel('Time lag')
+    # plt.ylabel('Counts correlated OTUs (pval<.05)')
+    # plt.title(title)
+    # plt.tight_layout()
+    # plt.show()
 
-    plt.plot(l, ssc, color='b', linestyle='-', linewidth=2.0, alpha=.6, 
+    plt.plot(l, ssc, color='b', marker='o', markersize=6.0, alpha=.6, linewidth=0.0, 
         label='Signal-Signal: rho > 0')
-    plt.plot(l, ssme, color='r', linestyle='-', linewidth=2.0, alpha=.6,
+    plt.plot(l, ssme, color='r', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
         label='Signal-Signal: rho < 0')
-    plt.plot(l, eec, color='g', linestyle='-', linewidth=2.0, alpha=.6,
+    plt.plot(l, eec, color='g', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
         label='Envelope-Envelope: rho > 0')
-    plt.plot(l, eeme, color='orange', linestyle='-', linewidth=2.0, alpha=.6,
+    plt.plot(l, eeme, color='orange', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
         label='Envelope-Envelope: rho < 0')
-    plt.plot(l, sec, color='c', linestyle='-', linewidth=2.0, alpha=.6,
+    plt.plot(l, sec, color='c', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
         label='Envelope-Signal: rho > 0')
-    plt.plot(l, seme, color='m', linestyle='-', linewidth=2.0, alpha=.6,
+    plt.plot(l, seme, color='m', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
         label='Envelope-Signal: rho < 0')
     
     plt.legend(loc='best', prop={'size':'small'})
     plt.xlabel('Time lag')
+    plt.xticks(arange(0, signal_len+10, 10))
     plt.ylabel('Counts correlated OTUs (pval<.001)')
+    plt.yticks(arange(0, signal_len+10, 10))
     plt.title(title)
     plt.grid()
     plt.tight_layout() # fix cutting off the tic labels
@@ -760,7 +765,6 @@ def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
 
     return (ssc, ssme, eec, eeme, sec, seme, interaction_type, time_lag, 
         direction)
-
 
 def hist_pulse_envelope_shifts(otus1, otus2, title):
     sn_otu1 = array([float(i[1:]) for i in otus1]) #avoid 'o'
@@ -815,3 +819,44 @@ def hist_pulse_envelope_shifts(otus1, otus2, title):
     plt.show()
     return (array(signal_timediffs), array(envelope_timediffs),
         array(sig_env_timediffs))
+
+def shared_pairs(results_objects):
+    '''Return array that counts shared edges in multiple results objects.
+
+    Inputs:
+     results_objects - list of parsed co-occurrence results objects.
+    Outputs: 
+     array, index i,j is the number of times edge i-j was seen (where i,j are 
+     determined by the uids_map) in all the results_objects.
+    '''
+    # Find the superset of OTU ids that contribute to significant edges. Since 
+    # we have different rarefactions, each result object might have different 
+    # sets of otus. The order of the uids_map is irrelevant; all we want is a 
+    # stable mapping. 
+    ids = []
+    for ro in results_objects:
+        ids.extend(ro.otu_ids.tolist())
+    uids = list(set(ids))
+    uids_map = {uids[i]:i for i in range(len(uids))}
+    # add edje i,j to results object. since edges might be i,j or j,i and still 
+    # be the same we add the matrix transpose to ensure we don't undercount. 
+    # we zero out the main diagonal and below post transpose addition to prevent
+    # subsequent overcount
+    results = zeros((len(uids), len(uids)))
+    for ro in results_objects:
+        for otu1, otu2 in ro.edges:
+            results[uids_map[otu1], uids_map[otu2]]+=1
+    return triu(results + results.T, 1)
+
+def plot_shared_pairs(spairs, num_tests):
+    '''Make a simple bar plot showing number of shared pairs.'''
+    counts = [(spairs==i).sum() for i in range(1,num_tests+1)]
+    heights = map(lambda x: x/float(spairs.sum()), counts)
+    left = arange(num_tests)
+    width = 1
+    plt.bar(left, heights, width)
+    plt.ylabel('% of total edges shared by X rarefactions')
+    plt.xlabel('Rarefactions')
+    plt.xticks(left+.5, left+1)
+    plt.grid(True)
+    plt.show()
