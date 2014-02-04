@@ -835,10 +835,10 @@ def shared_pairs(results_objects):
     # stable mapping. 
     ids = []
     for ro in results_objects:
-        ids.extend(ro.otu_ids.tolist())
+        ids.extend(ro.sig_otus)
     uids = list(set(ids))
     uids_map = {uids[i]:i for i in range(len(uids))}
-    # add edje i,j to results object. since edges might be i,j or j,i and still 
+    # add edge i,j to results object. since edges might be i,j or j,i and still 
     # be the same we add the matrix transpose to ensure we don't undercount. 
     # we zero out the main diagonal and below post transpose addition to prevent
     # subsequent overcount
@@ -848,8 +848,9 @@ def shared_pairs(results_objects):
             results[uids_map[otu1], uids_map[otu2]]+=1
     return triu(results + results.T, 1)
 
-def plot_shared_pairs(spairs, num_tests):
-    '''Make a simple bar plot showing number of shared pairs.'''
+def plot_shared_pairs(spairs, num_tests, out_fp):
+    '''Make a simple bar plot showing number of shared pairs and record stats.
+    '''
     counts = array([(spairs==i).sum() for i in range(1,num_tests+1)])
     heights = counts/counts.sum().astype(float)
     left = arange(num_tests)
@@ -861,3 +862,10 @@ def plot_shared_pairs(spairs, num_tests):
     plt.yticks(arange(21)*.05)
     plt.grid(True)
     plt.show()
+    # write output
+    header = '\tCounts'
+    lines = [header] + ['%s Rarefaction(s)\t%s' % (i, counts[i-1]) for i in 
+        range(1, num_tests+1)] + ['Total\t%s' % counts.sum()]
+    o = open(out_fp, 'w')
+    o.writelines('\n'.join(lines))
+    o.close()

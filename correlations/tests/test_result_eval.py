@@ -219,6 +219,40 @@ class Timeseries_definitions_test(TestCase):
         edge_dir_mat = null_edge_directionality_timeseries(otu1, otu2, num_nodes, indices)
         self.assertEqual(exp_edge_dir_mat, edge_dir_mat)
 
+    def test_shared_pairs(self):
+        '''Test that shared_pairs is calculating correctly.'''
+        # shared pairs expects objects which have a property 'edges' which is 
+        # a list of tuples of otu ids. instead of creating actual results 
+        # objects from one of the parsers we can just make these
+        class shared_pairs_test:
+            def __init__(self, edges, otu_ids):
+                '''set self edges'''
+                self.edges = edges
+                self.otu_ids = array(otu_ids)
+
+        e1 = \
+            [('4480529', '4379957'),
+            ('4480529', '13986'),
+            ('4480529', '287510'),
+            ('3696710', '4414388'),
+            ('4234212', '3390534')]
+        e2 = \
+            [('4480529', '4409730'),
+            ('1551174', '2309802'),
+            ('1760821', '182165'),
+            ('3691538', '188820')]
+        e3 = \
+            [('4480529', '4409730'),
+            ('189817', '4381303'),
+            ('2112006', '531495'),
+            ('72820', '2689396'),
+            ('3903651', '4343221'),
+            ('195336', '178822')]
+
+
+
+
+
 
 
 if __name__ == '__main__':
