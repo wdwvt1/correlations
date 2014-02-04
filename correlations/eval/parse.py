@@ -411,3 +411,54 @@ class NaiveResults(CorrelationCalcs):
         self._getSignificantData(sig_lvl, empirical)
         self._getLPSAndInteractions()
 
+class BCResults(CorrelationCalcs):
+    '''Derived class handles calculations for bray curtis correlation method.'''
+
+    def __init__(self, cval_lines, sig_lvl):
+        '''Init self by parsing cvals and calculating sig links.'''
+        vals = array([line.strip().split('\t') for line in cval_lines])
+        self.data = vals[1:,1:].astype(float) #avoid row,col headers
+        self.otu_ids = vals[0,1:]
+        cvals = array([line.strip().split('\t') for line in cval_lines])
+        self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
+        self._getSignificantData(sig_lvl)
+
+    def _getSignificantData(self, sig_lvl):
+        '''Find which edges significant at passed level and set self properties.
+        '''
+        rows,cols = self.data.shape #rows = cols
+        mask = zeros((rows,cols))
+        mask[tril_indices(rows,0)] = 1 #preparing mask
+        # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
+        # cvals.sort()
+        cvals = unique(self.cdata[triu_indices(rows,-1)])
+        alpha = sig_lvl/2.
+        lb = round(cvals[floor(alpha*len(cvals))],7)
+        ub = round(cvals[-ceil(alpha*len(cvals))],7)
+        if sig_lvl==0.:
+            lb = -inf
+            ub = inf
+        mdata = ma(self.cdata, mask)
+        if lb==ub:
+            # overcount is going to happen 
+            print 'lb, ub: %s %s' % (lb, ub), (mdata>=ub).sum(), (mdata<=lb).sum(), (mdata==lb).sum(), (mdata==ub).sum(), lb==ub
+        # because of the floor and ceil calculations we used >= for the 
+        # upper and lower bound calculations. as an example, assume you have
+        # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
+        # values on each side. Since we don't know what the pvalue is for 
+        # the 2.5th value in the list (it DNE), we round down to the 2nd 
+        # 2nd value for the lower bound, and round up to the 98th value for
+        # the upper bound.
+        upper_sig_edges = where(mdata>=ub,1,0).nonzero()
+        lower_sig_edges = where(mdata<=lb,1,0).nonzero()
+        e1 = hstack([upper_sig_edges[0], lower_sig_edges[0]])
+        e2 = hstack([upper_sig_edges[1], lower_sig_edges[1]])
+        self.sig_edges = (e1,e2)
+        self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+        self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+        self.sig_otus = list(set(self.otu1+self.otu2))
+        self.edges = zip(self.otu1, self.otu2)
+        self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
+            self.sig_edges[1])]
+        #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
+        #print alpha, lb, ub, kfhf
