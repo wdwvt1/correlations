@@ -836,7 +836,7 @@ def shared_pairs(results_objects):
     ids = []
     for ro in results_objects:
         ids.extend(ro.sig_otus)
-    uids = list(set(ids))
+    uids = sorted(list(set(ids)))
     uids_map = {uids[i]:i for i in range(len(uids))}
     # add edge i,j to results object. since edges might be i,j or j,i and still 
     # be the same we add the matrix transpose to ensure we don't undercount. 
