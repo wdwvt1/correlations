@@ -519,3 +519,58 @@ class MICResults(CorrelationCalcs):
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
 
+def sparcc_maker(biom_fp, cval_fp, pval_fp, sig_lvl=.001):
+    """convenience function, automate creation of sparcc object."""
+    bt = parse_biom_table(open(biom_fp))
+    o = open(cval_fp)
+    cval_lines = o.readlines()
+    o.close()
+    o = open(pval_fp)
+    pval_lines = o.readlines()
+    o.close()
+    return SparCCResults(pval_lines, cval_lines, sig_lvl)
+
+def conet_maker(ensemble_fp):
+    """convenience function, automate creation of conet object."""
+    o = open(ensemble_fp, 'U')
+    lines = o.readlines()
+    o.close()
+    return CoNetResults(lines)
+
+def rmt_maker(results_fp):
+    """convenience function, automate creation of rmt object."""
+    o = open(results_fp, 'U')
+    lines = o.readlines()
+    o.close()
+    return RMTResults(lines)
+
+def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001):
+    """convenience function, automate creation of lsa object."""
+    o = open(lsa_fp, 'U')
+    lines = o.readlines()
+    o.close()
+    return LSAResults(lines, filter_str, sig_lvl)
+
+def naive_maker(cval_fp, pval_fp, sig_lvl=.001):
+    """convenience function, automate creation of naive object."""
+    o = open(cval_fp, 'U')
+    clines = o.readlines()
+    o.close()
+    o = open(pval_fp, 'U')
+    plines = o.readlines()
+    o.close()
+    return NaiveResults(clines, plines, sig_lvl)
+
+def bray_curtis_maker(dists_fp, sig_lvl=.001):
+    """convenience function, automate creation of bray curtis object."""
+    o = open(dists_fp, 'U')
+    lines = o.readlines()
+    o.close()
+    return BrayCurtisResults(lines, sig_lvl)
+
+def mic_maker(mic_fp, feature_names, sig_lvl=.3):
+    """convenience function, automate creation of mic results object."""
+    o = open(mic_fp, 'U')
+    lines = o.readlines()
+    o.close()
+    return MICResults(lines, feature_names, sig_lvl)
