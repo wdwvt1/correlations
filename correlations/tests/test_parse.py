@@ -16,7 +16,8 @@ Tests parsers.
 
 from cogent.util.unit_test import TestCase, main
 from correlations.eval.parse import (CorrelationCalcs, CoNetResults, RMTResults,
-    SparCCResults, LSAResults, NaiveResults, triu_from_flattened) 
+    SparCCResults, LSAResults, NaiveResults, BrayCurtisResults, 
+    triu_from_flattened) 
 from biom.parse import parse_biom_table
 from biom.table import table_factory
 from numpy import array
@@ -125,6 +126,14 @@ NAIVE_CVAL_LINES = [\
 'o9\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0953429339494\n',
 'o10\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0']
 
+BC_LINES = [\
+    '#OTU_ID\to1\to2\to3\to4\to5',
+    'o1\t0\t6\t12\t18\t24',
+    'o2\t6\t0\t18\t24\t30',
+    'o3\t12\t18\t0\t30\t36',
+    'o4\t18\t24\t30\t0\t42',
+    'o5\t24\t30\t36\t42\t0']
+
 
 class CoNetParserTests(TestCase):
     '''Top level class for testing CoNet Parser.'''
@@ -157,7 +166,6 @@ class CoNetParserTests(TestCase):
           3.67000000e-01,   4.62000000e-02]])
         exp_methods = ['correl_pearson', 'correl_spearman', 'dist_bray', 
             'dist_kullbackleibler', 'sim_brownian']
-
 
         self.assertEqual(exp_otu1, self.CoNetResultsObj.otu1)
         self.assertEqual(exp_otu2, self.CoNetResultsObj.otu2)
@@ -388,199 +396,35 @@ class NaiveResultsTests(TestCase):
         self.assertFloatEqual(pvals, self.NaiveResultsObj1.pvals)
 
 
+class BrayCurtisParserTests(TestCase):
+    """Test that the Bray Curtis parser works as expected."""
 
+    def setUp(self):
+        '''Create data all functions need.'''
+        pass
 
-
-
-
-
-
-    # TO DO: 
-    # Add tests for each of the other filter map indices, and function
-
-
-# originaltable = array([[0, 0, 0, 1, 1], [3, 4, 1, 140, 1000], [5, 100, 0, 1, 2], [10, 1, 0, 0, 90], [0, 1000, 5, 30, 1]])
-# tables = [originaltable]
-# names = ['parser_testtable.biom']
-
-# def make_ids(data):
-#     sids = ['s%i' % i for i in range(data.shape[1])]
-#     oids = ['o%i' % i for i in range(data.shape[0])]
-#     return sids, oids
-
-# for table, name in zip(tables,names):
-#     sids, oids = make_ids(table)
-#     bt = table_factory(table, sids, oids)
-
-# # results fps
-# resultstest_fp = '/Users/sophie/Documents/Knight/CoOccurance/CoNet_eval1-21/conet_testcode2.txt'
-
-# #bt = parse_biom_table(bt)
-# o = open(resultstest_fp)
-# lines = o.readlines()
-# o.close()
-# cr = CoNetResults(lines)
-
-# class CoNetResultsTests(TestCase):
-
-#     def setUp(self):
-#         '''sets up variables needed by other tests'''
-#         self.cr = CoNetResults(lines)
-
-#     def test_parseInputLines(self):
-#         '''test that the parser works correctly'''
-#         self.assertEqual(cr.otu1, ['o0', 'o0', 'o1'])
-#         self.assertEqual(cr.otu2, ['o1', 'o2', 'o2'])
-#         self.assertEqual(cr.interaction, ['copresence', 'mutualExclusion', 'mutualExclusion'])
-#         self.assertEqual(cr.methods, ['correl_pearson', 'correl_spearman', 'dist_bray', 'dist_kullbackleibler', 'sim_brownian'])
-#         self.assertEqual(cr.scores, array([[ 0.71  ,  0.91  ,  0.082 ,  0.07  ,  0.93  ],
-#                                            [ -0.42  ,  0.9   ,  0.051 ,  0.015 ,  0.89  ],
-#                                            [ -0.29  ,  0.91  ,  0.037 ,  0.0094,  0.92  ]]))
-#         self.assertEqual(cr.pval, [0.0, 3.33e-16, 0.0])
-#         self.assertEqual(cr.qval, [0.0, 1.06e-14, 0.0])
-#         self.assertEqual(cr.sig, [100.0, 13.98, 100.0])
-
-#     def test_connectionFraction(self, total_otus = 3):
-#         '''test that connection fraction accurately calculated'''
-#         total_sig_interactions = len(list(self.cr.interaction))
-#         total_possible_interactions = total_otus*(total_otus-1)/2.
-#         obs = total_sig_interactions/total_possible_interactions
-#         exp = self.cr.connectionFraction(total_otus)
-#         self.assertEqual(obs, exp)
-
-#     def test_copresences(self):
-#         '''test copresences are counted correctly'''
-#         obs = 1.0
-#         exp = self.cr.copresences()
-#         self.assertEqual(obs, exp)
-
-#     def test_exclusions(self):
-#         '''test mutualExclusions are counted correctly'''
-#         obs = 2.0
-#         exp = self.cr.exclusions()
-#         self.assertEqual(obs, exp)
-        
-#     def test_connectionAbundance(self):  
-#         '''test abundance of connections per node accurately calculated'''
-#         number_unique_otus = list(set(self.cr.otu1+self.cr.otu2))
-#         expected_unique = ['o2', 'o1', 'o0']
-#         obs_abs_of_cpn = array([0, 0, 3])
-#         exp_abs_of_cpn = self.cr.connectionAbundance() 
-#         self.assertEqual(number_unique_otus, expected_unique)
-#         self.assertEqual(obs_abs_of_cpn, exp_abs_of_cpn)
-
-#     def test_avgConnectivity(self):
-#         '''test if return average number of connections per node (avg_cpn)'''
-#         abs_cpn = self.cr.connectionAbundance()
-#         total_abs_cpn = abs_cpn.sum().astype(float)
-#         total_edge_origins = (abs_cpn*arange(len(abs_cpn))).sum()
-#         obs_avg_cpn = total_edge_origins/total_abs_cpn
-#         exp_avg_cpn = self.cr.avgConnectivity()
-#         self.assertEqual(obs_avg_cpn, exp_avg_cpn)
-
-#     def test_otuConnectivity(self): 
-#         '''test that number of connections for each otu returned correctly'''
-#         number_unique_otus = list(set(self.cr.otu1+self.cr.otu2))
-#         unsorted_otuConnectivity = [(i,self.cr.otu1.count(i)+self.cr.otu2.count(i)) for i in number_unique_otus]
-#         obs = sorted(unsorted_otuConnectivity, key=itemgetter(1), reverse=True)
-#         exp = self.cr.otuConnectivity()
-#         self.assertEqual(obs, exp)
-
-    
-#     def test_methodVals(self):
-#         '''test if returns vectors of values for passed method.'''
-#         methods = list(self.cr.methods)
-#         exp_Vals = list(cr.scores.T)
-#         for i, method in enumerate(self.cr.methods):
-#             obs_vals = self.cr.methodVals(method)
-#             exp_vals = exp_Vals[i]
-#             self.assertEqual(obs_vals, exp_vals)
-      
-#     def test_extract_from_rho(self):
-#         '''test that correct rho values extracted from rho matrix'''
-#         rho = array([[ 1  ,  -0.9  ,  -0.01 ,  0.999  ,  0.5  ],
-#                     [ -0.9  ,  1   ,  100 ,  0.00001 ,  0.3  ],
-#                     [ -0.01  ,  100 ,  1 ,  0.8 ,  0.03  ],
-#                     [ 0.999  ,  0.00001  ,  0.8 ,  1 ,  -0.65  ],
-#                     [ 0.5  ,  0.3  ,  0.03 ,  -0.65,  1  ]])
-#         for i in range(len(rho)):
-#             for j in range(len(rho[i])):
-#                 row = 'o%d' %(i)
-#                 column = 'o%d' %(j)
-#                 edge = [(row,column)]
-#                 obs = extract_from_rho(rho, edge)
-#                 exp = [rho[i][j]]
-#                 self.assertEqual(obs,exp)
-
-#     def test_node_stats(self):
-#         '''test that the correct node statistics are returned'''
-#         exp_node_stats = {'sig_otu_mean': 83.86666666666666, 'all_otu_std': 269.02371642663775, 'all_otu_sparsity': 0.28000000000000003, 'non_sig_otu_sparsity': 0.29999999999999999, 'all_otu_mean': 95.799999999999997, 'non_sig_otu_mean': 113.7, 'non_sig_otu_std': 296.62267276794597, 'sig_otu_sparsity': 0.26666666666666666, 'sig_otu_std': 248.21411903614361}
-#         self.assertEqual(node_stats(cr.sig_otus,bt), exp_node_stats)
-    
-#     def test_ga_edge_even_odd(self):
-#         '''test if Return: True if all edges are between even and odd OTUs (gene1 and gene2)'''
-#         even_odd = [('o1', 'o2')]
-#         even_even = [('o2', 'o4')]
-#         odd_odd = [('o1', 'o3')]
-#         self_self = [('o1', 'o1')]
-#         self.assertEqual(ga_edge_even_odd(even_odd), True)
-#         self.assertEqual(ga_edge_even_odd(even_even), False)
-#         self.assertEqual(ga_edge_even_odd(odd_odd), False)
-#         self.assertEqual(ga_edge_even_odd(self_self), False)
-
-#     def test_null_sig_node_locs(self):
-#         '''test that the dataset locations of sig detected OTUs are correct'''
-#         num_nodes = [3]
-#         sig_nodes = cr.sig_otus
-#         locs = null_sig_node_locs(num_nodes, sig_nodes)
-#         exp_locs = array([0, 0, 0])
-#         self.assertEqual(locs, exp_locs)
-
-#     def test_null_edge_directionality(self):
-#         '''tests return of matrix of number of significant OTUs shared between distributions'''
-#         num_nodes = [3]
-#         directionality = null_edge_directionality(cr.otu1, cr.otu2, num_nodes)
-#         exp_directionality = array([[ 3.]])
-
-#     def test_eco_d2_counter(self):
-#         '''test correct class numbers and categories returned for d2 and d1 relationships'''
-#         output_edges = cr.edges
-#         output_interactions = cr.interaction
-#         start = 0
-#         stop = 4
-#         d2 = eco_d2_counter(start, stop, output_edges, output_interactions)
-#         exp_d2 = (1, 2, 1.3333333333333333, 1, 0, 0, 2)
-#         self.assertEqual(d2, exp_d2)
-
-#     def test_eco_d1_counter(self):
-#         '''test correct class numbers and categories returned for d1 relationships'''
-#         output_edges = cr.edges
-#         output_interactions = cr.interaction
-#         start = 0
-#         stop = 4
-#         d1 = eco_d1_counter(start, stop, output_edges, output_interactions)
-#         exp_d1 = (1, 2.0, 1, 0)
-#         self.assertEqual(d1, exp_d1)
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    def test_getSignificantData(self):
+        '''Test that significant data is correctly retrieved.'''
+        sig_lvl = .3 # 7 unique vals in data, .2*7 = 2.1 -> 2 chosen.
+        ro = BrayCurtisResults(BC_LINES, sig_lvl)
+        # tests begin
+        exp_data = array([
+            [ 0,  6, 12, 18, 24],
+            [ 6,  0, 18, 24, 30],
+            [12, 18,  0, 30, 36],
+            [18, 24, 30,  0, 42],
+            [24, 30, 36, 42,  0]])
+        exp_otu_ids = ['o1','o2','o3','o4','o5']
+        exp_actual_sig_lvl = 2/10.
+        exp_sig_edges = (array([0, 0]), array([1,2]))
+        exp_otu1 = ['o1', 'o1']
+        exp_otu2 = ['o2', 'o3']
+        self.assertFloatEqual(exp_data, ro.data)
+        self.assertEqual(exp_otu_ids, ro.otu_ids)
+        self.assertFloatEqual(exp_actual_sig_lvl, ro.actual_sig_lvl)
+        self.assertFloatEqual(exp_sig_edges, ro.sig_edges)
+        self.assertEqual(exp_otu1, ro.otu1)
+        self.assertEqual(exp_otu2, ro.otu2)
 
 
 if __name__ == '__main__':

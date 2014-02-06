@@ -411,7 +411,7 @@ class NaiveResults(CorrelationCalcs):
         self._getSignificantData(sig_lvl, empirical)
         self._getLPSAndInteractions()
 
-class BCResults(CorrelationCalcs):
+class BrayCurtisResults(CorrelationCalcs):
     '''Derived class handles calculations for bray curtis correlation method.
 
     Bray Curtis is different than the other methods in that it doesn't say if 
@@ -434,7 +434,8 @@ class BCResults(CorrelationCalcs):
         # since there is no notion of mutual exclusion we have to assign our 
         # significant interactions as nothing
         self.interactions = []
-        print 'Warning: actual significance level is\t%s' % self.actual_sig_lvl
+        if sig_lvl != self.actual_sig_lvl:
+            print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
 
     def _getSignificantData(self, sig_lvl):
         '''Find which edges significant at passed level and set self properties.
@@ -442,7 +443,7 @@ class BCResults(CorrelationCalcs):
         rows,cols = self.data.shape #rows = cols
         mask = zeros((rows,cols))
         mask[tril_indices(rows,0)] = 1 #preparing mask
-        cvals = unique(self.data[triu_indices(rows,-1)]) # cvals is sorted
+        cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
         # calculate lower bound, i.e. what value in the distribution of values 
         # has sig_lvl fraction of the data lower than or equal to it. this is
         # not guaranteed to be precise because of repeated values. for instance 
@@ -456,7 +457,7 @@ class BCResults(CorrelationCalcs):
         # encompass 50 percent of the data. the round call on the lb is to avoid
         # documented numpy weirdness where it will misassign >= calls for long
         # floats. 
-        lb = round(cvals[round(sig_lvl*len(cvals))],7)
+        lb = round(cvals[round(sig_lvl*len(cvals))-1],7) #-1 because 0 indexing
         mdata = ma(self.data, mask)
         self.actual_sig_lvl = \
             (mdata <= lb).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
