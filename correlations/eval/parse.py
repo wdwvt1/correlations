@@ -412,16 +412,29 @@ class NaiveResults(CorrelationCalcs):
         self._getLPSAndInteractions()
 
 class BCResults(CorrelationCalcs):
-    '''Derived class handles calculations for bray curtis correlation method.'''
+    '''Derived class handles calculations for bray curtis correlation method.
 
-    def __init__(self, cval_lines, sig_lvl):
-        '''Init self by parsing cvals and calculating sig links.'''
-        vals = array([line.strip().split('\t') for line in cval_lines])
+    Bray Curtis is different than the other methods in that it doesn't say if 
+    a linkage is positive or negative (its a dissimilarity measure, not a 
+    measure of correlation). This means we will take only values on the left 
+    tail of the distribution.
+    '''
+
+    def __init__(self, dissim_lines, sig_lvl):
+        '''Init self by parsing dissim_lines and calculating sig links.'''
+        # error check at the beginning avoids computation
+        if sig_lvl==0.:
+            raise ValueError('sig_lvl cannot be 0. pass sig_lvl > 0.')
+        # begin parsing
+        vals = array([line.strip().split('\t') for line in dissim_lines])
         self.data = vals[1:,1:].astype(float) #avoid row,col headers
         self.otu_ids = vals[0,1:]
-        cvals = array([line.strip().split('\t') for line in cval_lines])
-        self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
         self._getSignificantData(sig_lvl)
+        # HACK
+        # since there is no notion of mutual exclusion we have to assign our 
+        # significant interactions as nothing
+        self.interactions = []
+        print 'Warning: actual significance level is\t%s' % self.actual_sig_lvl
 
     def _getSignificantData(self, sig_lvl):
         '''Find which edges significant at passed level and set self properties.
@@ -429,36 +442,27 @@ class BCResults(CorrelationCalcs):
         rows,cols = self.data.shape #rows = cols
         mask = zeros((rows,cols))
         mask[tril_indices(rows,0)] = 1 #preparing mask
-        # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
-        # cvals.sort()
-        cvals = unique(self.cdata[triu_indices(rows,-1)])
-        alpha = sig_lvl/2.
-        lb = round(cvals[floor(alpha*len(cvals))],7)
-        ub = round(cvals[-ceil(alpha*len(cvals))],7)
-        if sig_lvl==0.:
-            lb = -inf
-            ub = inf
-        mdata = ma(self.cdata, mask)
-        if lb==ub:
-            # overcount is going to happen 
-            print 'lb, ub: %s %s' % (lb, ub), (mdata>=ub).sum(), (mdata<=lb).sum(), (mdata==lb).sum(), (mdata==ub).sum(), lb==ub
-        # because of the floor and ceil calculations we used >= for the 
-        # upper and lower bound calculations. as an example, assume you have
-        # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
-        # values on each side. Since we don't know what the pvalue is for 
-        # the 2.5th value in the list (it DNE), we round down to the 2nd 
-        # 2nd value for the lower bound, and round up to the 98th value for
-        # the upper bound.
-        upper_sig_edges = where(mdata>=ub,1,0).nonzero()
-        lower_sig_edges = where(mdata<=lb,1,0).nonzero()
-        e1 = hstack([upper_sig_edges[0], lower_sig_edges[0]])
-        e2 = hstack([upper_sig_edges[1], lower_sig_edges[1]])
-        self.sig_edges = (e1,e2)
+        cvals = unique(self.data[triu_indices(rows,-1)]) # cvals is sorted
+        # calculate lower bound, i.e. what value in the distribution of values 
+        # has sig_lvl fraction of the data lower than or equal to it. this is
+        # not guaranteed to be precise because of repeated values. for instance 
+        # assume the distribution of dissimilarity values is:
+        # [.1, .2, .2, .2, .2, .3, .4, .5, .6, .6] 
+        # and you want sig_lvl=.2, i.e. you get 20 percent of the linkages as 
+        # significant. this would result in choosing the score .2 since its the
+        # second in the ordered list (of 10 elements, 2/10=.2). but, since there
+        # is no a-priori way to tell which of the multiple .2 linkages are 
+        # significant, we select all of them, forcing our lower bound to 
+        # encompass 50 percent of the data. the round call on the lb is to avoid
+        # documented numpy weirdness where it will misassign >= calls for long
+        # floats. 
+        lb = round(cvals[round(sig_lvl*len(cvals))],7)
+        mdata = ma(self.data, mask)
+        self.actual_sig_lvl = \
+            (mdata <= lb).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
+        self.sig_edges = where(mdata <= lb, 1, 0).nonzero()
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
-        self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
-            self.sig_edges[1])]
-        #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
-        #print alpha, lb, ub, kfhf
+
