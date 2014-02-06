@@ -411,6 +411,7 @@ class NaiveResults(CorrelationCalcs):
         self._getSignificantData(sig_lvl, empirical)
         self._getLPSAndInteractions()
 
+
 class BrayCurtisResults(CorrelationCalcs):
     '''Derived class handles calculations for bray curtis correlation method.
 
@@ -462,6 +463,57 @@ class BrayCurtisResults(CorrelationCalcs):
         self.actual_sig_lvl = \
             (mdata <= lb).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
         self.sig_edges = where(mdata <= lb, 1, 0).nonzero()
+        self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+        self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+        self.sig_otus = list(set(self.otu1+self.otu2))
+        self.edges = zip(self.otu1, self.otu2)
+
+
+class MICResults(CorrelationCalcs):
+    """Derived class handles calculations for MIC correlation method."""
+
+    def __init__(self, mic_lines, feature_names, sig_lvl):
+        '''Init self by parsing mic lines and feature_names to get order.'''
+        # error check at the beginning avoids computation
+        if sig_lvl==0.:
+            raise ValueError('sig_lvl cannot be 0. pass sig_lvl > 0.')
+        # no feature identifiers so we can parse mic_lines directly to data
+        self.data = array([map(float, line.strip().split(' ')) for line in 
+            mic_lines])
+        self.otu_ids = feature_names
+        self._getSignificantData(sig_lvl)
+        # HACK
+        # since there is no notion of mutual exclusion we have to assign our 
+        # significant interactions as nothing
+        self.interactions = []
+        if sig_lvl != self.actual_sig_lvl:
+            print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
+
+    def _getSignificantData(self, sig_lvl):
+        '''Find which edges significant at passed level and set self properties.
+        '''
+        rows,cols = self.data.shape #rows = cols
+        mask = zeros((rows,cols))
+        mask[tril_indices(rows,0)] = 1 #preparing mask
+        cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
+        # calculate upper bound, i.e. what value in the distribution of values 
+        # has sig_lvl fraction of the data higher than or equal to it. this is
+        # not guaranteed to be precise because of repeated values. for instance 
+        # assume the distribution of dissimilarity values is:
+        # [.1, .2, .2, .2, .2, .3, .4, .5, .6, .6, .6, .6, .6, .6, .7] 
+        # and you want sig_lvl=.2, i.e. you get 20 percent of the linkages as 
+        # significant. this would result in choosing the score .6 since its the
+        # third in the ordered list (of 15 elements, 3/15=.2). but, since there
+        # is no a-priori way to tell which of the multiple .6 linkages are 
+        # significant, we select all of them, forcing our lower bound to 
+        # encompass 7/15ths of the data. the round call on the ub is to avoid
+        # documented numpy weirdness where it will misassign >= calls for long
+        # floats. 
+        ub = round(cvals[-round(sig_lvl*len(cvals))],7)
+        mdata = ma(self.data, mask)
+        self.actual_sig_lvl = \
+            (mdata >= ub).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
+        self.sig_edges = where(mdata >= ub, 1, 0).nonzero()
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))

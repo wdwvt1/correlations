@@ -16,7 +16,7 @@ Tests parsers.
 
 from cogent.util.unit_test import TestCase, main
 from correlations.eval.parse import (CorrelationCalcs, CoNetResults, RMTResults,
-    SparCCResults, LSAResults, NaiveResults, BrayCurtisResults, 
+    SparCCResults, LSAResults, NaiveResults, BrayCurtisResults, MICResults,
     triu_from_flattened) 
 from biom.parse import parse_biom_table
 from biom.table import table_factory
@@ -127,12 +127,25 @@ NAIVE_CVAL_LINES = [\
 'o10\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0\t0.0']
 
 BC_LINES = [\
-    '#OTU_ID\to1\to2\to3\to4\to5',
-    'o1\t0\t6\t12\t18\t24',
-    'o2\t6\t0\t18\t24\t30',
-    'o3\t12\t18\t0\t30\t36',
-    'o4\t18\t24\t30\t0\t42',
-    'o5\t24\t30\t36\t42\t0']
+ '#OTU_ID\to1\to2\to3\to4\to5',
+ 'o1\t0\t6\t12\t18\t24',
+ 'o2\t6\t0\t18\t24\t30',
+ 'o3\t12\t18\t0\t30\t36',
+ 'o4\t18\t24\t30\t0\t42',
+ 'o5\t24\t30\t36\t42\t0']
+
+MIC_LINES = [\
+ '1 0.724 0.196 0.032 0.86 0.506 0.926 0.126 0.45 0.772 0.678\n',
+ '0.724 1 0.654 0.368 0.806 0.644 0.102 0.918 0.176 0.35 0.492\n',
+ '0.196 0.654 1 0.194 0.652 0.298 0.896 0.856 0.57 0.592 0.738\n',
+ '0.032 0.368 0.194 1 0.616 0.764 0.494 0.574 0.146 0.418 0.114\n',
+ '0.86 0.806 0.652 0.616 1 0.106 0.83 0.552 0.082 0.618 0.39\n',
+ '0.506 0.644 0.298 0.764 0.106 1 0.07 0.608 0.142 0.006 0.208\n',
+ '0.926 0.102 0.896 0.494 0.83 0.07 1 0.636 0.46 0.78 0.99\n',
+ '0.126 0.918 0.856 0.574 0.552 0.608 0.636 1 0.626 0.206 0.334\n',
+ '0.45 0.176 0.57 0.146 0.082 0.142 0.46 0.626 1 0.432 0.83\n',
+ '0.772 0.35 0.592 0.418 0.618 0.006 0.78 0.206 0.432 1 0.028\n',
+ '0.678 0.492 0.738 0.114 0.39 0.208 0.99 0.334 0.83 0.028 1\n']
 
 
 class CoNetParserTests(TestCase):
@@ -404,7 +417,7 @@ class BrayCurtisParserTests(TestCase):
         pass
 
     def test_getSignificantData(self):
-        '''Test that significant data is correctly retrieved.'''
+        '''Test that _getSignificantDaa works as intended (as well as init).'''
         sig_lvl = .3 # 7 unique vals in data, .2*7 = 2.1 -> 2 chosen.
         ro = BrayCurtisResults(BC_LINES, sig_lvl)
         # tests begin
@@ -425,6 +438,66 @@ class BrayCurtisParserTests(TestCase):
         self.assertFloatEqual(exp_sig_edges, ro.sig_edges)
         self.assertEqual(exp_otu1, ro.otu1)
         self.assertEqual(exp_otu2, ro.otu2)
+
+
+class MICResultsParserTests(TestCase):
+    """Test that the MIC parser is operating as intended."""
+
+    def setUp(self):
+        pass
+
+    def test_getSignificantData(self):
+        '''Test that _getSignificantDaa works as intended (as well as init).'''
+        features = ['o0','o1','o2','o3','o4','o5','o6','o7','o8','o9','o10']
+        sig_lvl = .1 # len(exp_cvals) = 54 * .1 = 5.4 -> 5 -> exp_cvals[-5]=.86
+        ro = MICResults(MIC_LINES, features, sig_lvl)
+        # expected cvals
+        # exp_cvals = array([ 
+        #     0.006,  0.028,  0.032,  0.07 ,  0.082,  0.102,  0.106,  0.114,
+        #     0.126,  0.142,  0.146,  0.176,  0.194,  0.196,  0.206,  0.208,
+        #     0.298,  0.334,  0.35 ,  0.368,  0.39 ,  0.418,  0.432,  0.45 ,
+        #     0.46 ,  0.492,  0.494,  0.506,  0.552,  0.57 ,  0.574,  0.592,
+        #     0.608,  0.616,  0.618,  0.626,  0.636,  0.644,  0.652,  0.654,
+        #     0.678,  0.724,  0.738,  0.764,  0.772,  0.78 ,  0.806,  0.83 ,
+        #     0.856,  0.86 ,  0.896,  0.918,  0.926,  0.99 ])
+        exp_data = array([
+           [ 1.   ,  0.724,  0.196,  0.032,  0.86 ,  0.506,  0.926,  0.126,
+             0.45 ,  0.772,  0.678],
+           [ 0.724,  1.   ,  0.654,  0.368,  0.806,  0.644,  0.102,  0.918,
+             0.176,  0.35 ,  0.492],
+           [ 0.196,  0.654,  1.   ,  0.194,  0.652,  0.298,  0.896,  0.856,
+             0.57 ,  0.592,  0.738],
+           [ 0.032,  0.368,  0.194,  1.   ,  0.616,  0.764,  0.494,  0.574,
+             0.146,  0.418,  0.114],
+           [ 0.86 ,  0.806,  0.652,  0.616,  1.   ,  0.106,  0.83 ,  0.552,
+             0.082,  0.618,  0.39 ],
+           [ 0.506,  0.644,  0.298,  0.764,  0.106,  1.   ,  0.07 ,  0.608,
+             0.142,  0.006,  0.208],
+           [ 0.926,  0.102,  0.896,  0.494,  0.83 ,  0.07 ,  1.   ,  0.636,
+             0.46 ,  0.78 ,  0.99 ],
+           [ 0.126,  0.918,  0.856,  0.574,  0.552,  0.608,  0.636,  1.   ,
+             0.626,  0.206,  0.334],
+           [ 0.45 ,  0.176,  0.57 ,  0.146,  0.082,  0.142,  0.46 ,  0.626,
+             1.   ,  0.432,  0.83 ],
+           [ 0.772,  0.35 ,  0.592,  0.418,  0.618,  0.006,  0.78 ,  0.206,
+             0.432,  1.   ,  0.028],
+           [ 0.678,  0.492,  0.738,  0.114,  0.39 ,  0.208,  0.99 ,  0.334,
+             0.83 ,  0.028,  1.   ]])
+        exp_otu_ids = ['o0','o1','o2','o3','o4','o5','o6','o7','o8','o9','o10']
+        exp_actual_sig_lvl = 5/55. # 11*10/2 = 55, 5 vals <= .082
+        exp_sig_edges = (array([0,0,1,2,6]), array([4,6,7,6,10]))
+        exp_otu1 = ['o0', 'o0', 'o1', 'o2', 'o6']
+        exp_otu2 = ['o4', 'o6', 'o7', 'o6', 'o10']
+        self.assertFloatEqual(exp_data, ro.data)
+        self.assertEqual(exp_otu_ids, ro.otu_ids)
+        self.assertFloatEqual(exp_actual_sig_lvl, ro.actual_sig_lvl)
+        self.assertFloatEqual(exp_sig_edges, ro.sig_edges)
+        self.assertEqual(exp_otu1, ro.otu1)
+        self.assertEqual(exp_otu2, ro.otu2)
+
+
+
+
 
 
 if __name__ == '__main__':
