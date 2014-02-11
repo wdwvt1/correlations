@@ -390,7 +390,7 @@ class NaiveResultsTests(TestCase):
              0.        ,  0.        ,  0.        ,  0.        ,  0.09534293],
            [ 0.        ,  0.        ,  0.        ,  0.        ,  0.        ,
              0.        ,  0.        ,  0.        ,  0.        ,  0.        ]])
-        self.assertFloatEqual(self.NaiveResultsObj1.data, exp_pdata)
+        self.assertFloatEqual(self.NaiveResultsObj1.pdata, exp_pdata)
         self.assertFloatEqual(self.NaiveResultsObj1.cdata, exp_cdata)
         sig_edges = (array([0,2,2,3,4,4,6]), array([5,3,7,5,8,9,8]))
         otu1 = ['o%s' % (i+1) for i in sig_edges[0]]

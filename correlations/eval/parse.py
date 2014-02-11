@@ -15,7 +15,7 @@ import re
 from operator import itemgetter 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty, floor, ceil, hstack, tril_indices, inf, unique)
+    repeat, empty, floor, ceil, hstack, tril_indices, inf, unique, isnan)
 from numpy.ma import masked_array as ma
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
@@ -90,33 +90,36 @@ class CoNetResults(CorrelationCalcs):
         '''
         
         vals = [line.split('\t') for line in lines]
-        data = [[],[],[],[],[],[],[]]
-        for line in vals[1:]: #skip the header line
-            [data[ind].append(val) for ind,val in enumerate(line)]
+        if len(vals) == 1:
+            self._hackish_empty_results_fix()
+        else:
+            data = [[],[],[],[],[],[],[]]
+            for line in vals[1:]: #skip the header line
+                [data[ind].append(val) for ind,val in enumerate(line)]
 
-        self.otu1 = list(data[0])
-        self.otu2 = list(data[1])
-        self.sig_otus = list(set(self.otu1+self.otu2))
-        self.edges = zip(self.otu1, self.otu2)
-        self.interactions = data[2]
-        self.pvals = map(float,data[4])
-        self.qvals = map(float,data[5])
-        self.sigs = map(float,data[6])
-        
-        # method scores are given in a different order for each edge. 
-        # method names are of the form abc_def. 
-        sorted_methods = sorted(re.findall('[a-zA-Z]+_?[a-zA-Z]+',data[3][0]))
-        sorted_scores = []
-        for m_s_str in data[3]:
-            methods = re.findall('[a-zA-Z]+_?[a-zA-Z]+', m_s_str)
-            scores = re.findall('-?[0-9]+?\.[0-9]+', m_s_str)
-            tmp = sorted(zip(methods,scores), key=itemgetter(0))
-            sc = [float(score) for method,score in tmp]
-            sorted_scores.append(sc)
-        # WARNING: if any scores are of the form .351 with no preceeding 0, the
-        # code will fail to capture this value.
-        self.scores = array(sorted_scores).astype(float)
-        self.methods = sorted_methods
+            self.otu1 = list(data[0])
+            self.otu2 = list(data[1])
+            self.sig_otus = list(set(self.otu1+self.otu2))
+            self.edges = zip(self.otu1, self.otu2)
+            self.interactions = data[2]
+            self.pvals = map(float,data[4])
+            self.qvals = map(float,data[5])
+            self.sigs = map(float,data[6])
+     
+            # method scores are given in a different order for each edge. 
+            # method names are of the form abc_def. 
+            sorted_methods = sorted(re.findall('[a-zA-Z]+_?[a-zA-Z]+',data[3][0]))
+            sorted_scores = []
+            for m_s_str in data[3]:
+                methods = re.findall('[a-zA-Z]+_?[a-zA-Z]+', m_s_str)
+                scores = re.findall('-?[0-9]+?\.[0-9]+', m_s_str)
+                tmp = sorted(zip(methods,scores), key=itemgetter(0))
+                sc = [float(score) for method,score in tmp]
+                sorted_scores.append(sc)
+            # WARNING: if any scores are of the form .351 with no preceeding 0, the
+            # code will fail to capture this value.
+            self.scores = array(sorted_scores).astype(float)
+            self.methods = sorted_methods
 
     def methodVals(self, method):
         '''Return vectors of values for passed method.'''
@@ -125,6 +128,17 @@ class CoNetResults(CorrelationCalcs):
         except ValueError:
             print 'Passed method not in methods. Methods are:\n%s' % \
                 ('\n'.join(self.methods))
+
+    def _hackish_empty_results_fix(self):
+        '''This sets important properties to 0's, []'s, etc if no results.'''
+        self.otu1 = []
+        self.otu2 = []
+        self.sig_otus = []
+        self.edges = []
+        self.interactions = []
+        self.pvals = []
+        self.qvals = []
+        self.sigs = []
 
 
 class RMTResults(CorrelationCalcs):
@@ -330,23 +344,28 @@ class NaiveResults(CorrelationCalcs):
     def __init__(self, cval_lines, pval_lines, sig_lvl, empirical=False):
         '''Init self by parsing cvals and calculating sig links.'''
         vals = array([line.strip().split('\t') for line in pval_lines])
-        self.data = vals[1:,1:].astype(float) #avoid row,col headers
+        self.pdata = vals[1:,1:].astype(float) #avoid row,col headers
+        # nan pdata gets a pvalue of 1.
+        nan_indicies = isnan(self.pdata)
+        self.pdata[nan_indicies] = 1
         self.otu_ids = vals[0,1:]
         cvals = array([line.strip().split('\t') for line in cval_lines])
         self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
+        # nan correlated data gets cval of 0.
+        self.cdata[nan_indicies] = 0.
         self._getSignificantData(sig_lvl, empirical)
         self._getLPSAndInteractions()
 
     def _getSignificantData(self, sig_lvl, empirical):
         '''Find which edges significant at passed level and set self properties.
         '''
-        rows,cols = self.data.shape #rows = cols
+        rows,cols = self.pdata.shape #rows = cols
         if empirical:
             mask = zeros((rows,cols))
             mask[tril_indices(rows,0)] = 1 #preparing mask
             # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
             # cvals.sort()
-            cvals = unique(self.cdata[triu_indices(rows,-1)])
+            cvals = unique(self.cdata[triu_indices(rows,1)])
             alpha = sig_lvl/2.
             lb = round(cvals[floor(alpha*len(cvals))],7)
             ub = round(cvals[-ceil(alpha*len(cvals))],7)
@@ -373,7 +392,7 @@ class NaiveResults(CorrelationCalcs):
             self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
             self.sig_otus = list(set(self.otu1+self.otu2))
             self.edges = zip(self.otu1, self.otu2)
-            self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
+            self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
                 self.sig_edges[1])]
             #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
             #print alpha, lb, ub, kfhf
@@ -383,13 +402,14 @@ class NaiveResults(CorrelationCalcs):
             # chosen.
             # data is nxn matrix
             # sig edges is tuple of arrays corresponding to row,col indices
-            self.sig_edges = \
-                ((tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl).nonzero()
+            tmp = (self.pdata <= sig_lvl)
+            tmp[tril_indices(self.pdata.shape[0], 0)] = 0
+            self.sig_edges = tmp.nonzero()
             self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
             self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
             self.sig_otus = list(set(self.otu1+self.otu2))
             self.edges = zip(self.otu1, self.otu2)
-            self.pvals = [self.data[i][j] for i,j in zip(self.sig_edges[0],
+            self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
                 self.sig_edges[1])]
             #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, self.sig_edges[0][:10], self.sig_edges[1][:10]
 
