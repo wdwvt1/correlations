@@ -454,7 +454,8 @@ class BrayCurtisResults(CorrelationCalcs):
         # HACK
         # since there is no notion of mutual exclusion we have to assign our 
         # significant interactions as nothing
-        self.interactions = []
+        #self.interactions = []
+        self.interactions = ['copresence']* len(self.edges)
         if sig_lvl != self.actual_sig_lvl:
             print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
 
@@ -505,7 +506,8 @@ class MICResults(CorrelationCalcs):
         # HACK
         # since there is no notion of mutual exclusion we have to assign our 
         # significant interactions as nothing
-        self.interactions = []
+        #self.interactions = []
+        self.interactions = ['copresence']* len(self.edges)
         if sig_lvl != self.actual_sig_lvl:
             print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
 

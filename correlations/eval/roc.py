@@ -127,7 +127,7 @@ def plot_roc(specificity_pts, sensitivity_pts, pvals, lbl, c, pval_labels=False,
      ms - int, size of the pts.
     '''
     plt.plot(1-specificity_pts, sensitivity_pts, color=c, markerfacecolor=c, 
-        markersize=ms,  marker='s', linewidth=1.0, label=lbl, alpha = .5)
+        markersize=ms,  marker='s', linewidth=3.0, label=lbl, alpha = .5)
     if pval_labels:
         [plt.text(1- specificity_pts[i], sensitivity_pts[i], \
             map(str, pvals)[i]) for i in range(len(pvals))]
@@ -138,10 +138,11 @@ def finish_roc_plot(title):
     plt.xlabel('1 - Specificity')
     plt.ylabel('Sensitivity')
     plt.grid(True)
-    plt.plot([0,1],[0,1],'k-', label='Baseline', alpha = .5)
+    plt.plot([0,1],[0,1], color='k', linewidth=1.0, label='Baseline', alpha = .5)
     plt.legend(loc=4)
     plt.xlim(-.02,1.02)
     plt.ylim(-.02,1.02)
+    plt.savefig('/Users/sophie/Desktop/Composite_Six_Species_LV_roc.pdf', format='pdf', dpi=1500)
     plt.show()
 
 

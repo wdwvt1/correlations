@@ -279,6 +279,7 @@ def null_hist_sig_node_locs(locs, methods, num_nodes):
     sb.set_xlabel('Distributions')
     sb.set_ylabel('Counts of sig. nodes')
     plt.tight_layout() # fix cutting off the tic labels
+    plt.savefig('/Users/sophie/Desktop/LSA_null_hist_pt001.pdf', format='pdf', dpi=1500)
     plt.show()
 
 def null_edge_directionality(otu1, otu2, num_nodes):
@@ -740,17 +741,21 @@ def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
     # plt.tight_layout()
     # plt.show()
 
-    plt.plot(l, ssc, color='b', marker='o', markersize=6.0, alpha=.6, linewidth=0.0, 
+    #plt.plot(l, ssme, color='r', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+     #   label='Signal-Signal: rho < 0')
+    ###changed the plotting from dots to lines!!!
+
+    plt.plot(l, ssc, color='b', alpha=.6, linewidth=3.0, 
         label='Signal-Signal: rho > 0')
-    plt.plot(l, ssme, color='r', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+    plt.plot(l, ssme, color='y', alpha=.6, linewidth=3.0,
         label='Signal-Signal: rho < 0')
-    plt.plot(l, eec, color='g', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+    plt.plot(l, eec, color='g', alpha=.6, linewidth=3.0,
         label='Envelope-Envelope: rho > 0')
-    plt.plot(l, eeme, color='orange', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+    plt.plot(l, eeme, color='orange', alpha=.6, linewidth=3.0,
         label='Envelope-Envelope: rho < 0')
-    plt.plot(l, sec, color='c', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+    plt.plot(l, sec, color='c', alpha=.6, linewidth=3.0,
         label='Envelope-Signal: rho > 0')
-    plt.plot(l, seme, color='m', marker='o', markersize=6.0, alpha=.6, linewidth=0.0,
+    plt.plot(l, seme, color='m', alpha=.6, linewidth=3.0,
         label='Envelope-Signal: rho < 0')
     
     plt.legend(loc='best', prop={'size':'small'})
@@ -761,6 +766,7 @@ def hist_pulse_envelope_shifts_2(otus1, otus2, pos_neg, signal_len, num_signals,
     plt.title(title)
     plt.grid()
     plt.tight_layout() # fix cutting off the tic labels
+    plt.savefig('/Users/sophie/Desktop/pulse_envelope.pdf', format='pdf', dpi=1500)
     plt.show()
 
     return (ssc, ssme, eec, eeme, sec, seme, interaction_type, time_lag, 
