@@ -104,6 +104,8 @@ class CoNetResults(CorrelationCalcs):
             self.interactions = data[2]
             self.pvals = map(float,data[4])
             self.qvals = map(float,data[5])
+            self.cvals = map(lambda x: 1.0 if x=='copresence' else -1.0, 
+                             self.interactions)
             self.sigs = map(float,data[6])
      
             # method scores are given in a different order for each edge. 
@@ -249,7 +251,7 @@ def triu_from_flattened(n, offset=0):
 class LSAResults(CorrelationCalcs):
     '''Derived class LSAResults handles parsing and specific functions.'''
 
-    def __init__(self, lines, filter, sig_lvl, rtype='redundant'):
+    def __init__(self, lines, filter, sig_lvl, rtype='unique'):
         '''Initialize self by parsing inputs lines.
 
         The parsing for LSA has to be done carefully because the output tables 
@@ -284,6 +286,7 @@ class LSAResults(CorrelationCalcs):
         self.pvals = []
         self.interactions = []
         self.scores = []
+        self.cvals = self.scores
 
         # filter_by_map indicates which column index in the input file 
         # corresponds to which method p-value for a given edge. 
@@ -488,6 +491,7 @@ class BrayCurtisResults(CorrelationCalcs):
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
+        self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
 
 
 class MICResults(CorrelationCalcs):
@@ -540,6 +544,8 @@ class MICResults(CorrelationCalcs):
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
+        self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
+        
 
 def sparcc_maker(biom_fp, cval_fp, pval_fp, sig_lvl=.001):
     """convenience function, automate creation of sparcc object."""
@@ -566,12 +572,12 @@ def rmt_maker(results_fp):
     o.close()
     return RMTResults(lines)
 
-def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001):
+def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001, rtype='redundant'):
     """convenience function, automate creation of lsa object."""
     o = open(lsa_fp, 'U')
     lines = o.readlines()
     o.close()
-    return LSAResults(lines, filter_str, sig_lvl)
+    return LSAResults(lines, filter_str, sig_lvl, rtype=rtype)
 
 def naive_maker(cval_fp, pval_fp, sig_lvl=.001):
     """convenience function, automate creation of naive object."""
