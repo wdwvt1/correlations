@@ -15,7 +15,7 @@ import re
 from operator import itemgetter 
 from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
-    repeat, empty, floor, ceil, hstack, tril_indices, inf, unique, isnan)
+    repeat, empty, floor, ceil, hstack, tril_indices, inf, unique, isnan, triu)
 from numpy.ma import masked_array as ma
 from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
@@ -162,6 +162,7 @@ class RMTResults(CorrelationCalcs):
         # interaction='Correlated'. Things with a negative correlation score
         # are negative interactions, so we can assign the interaction ourselves.
         self.scores = map(float,data[3])
+        self.cvals = self.scores
         interactions = []
         for i in self.scores:
             if i>=0:
@@ -181,7 +182,8 @@ class RMTResults(CorrelationCalcs):
 class SparCCResults(CorrelationCalcs):
     '''Derived class SparCCResults handles parsing and specific functions.'''
 
-    def __init__(self, pval_lines, corr_lines, sig_lvl=.05):
+    def __init__(self, pval_lines, corr_lines, sig_lvl=.05,
+                 pearson_filter=None):
         '''Initialize self by parsing input lines.
 
         Structure of this init is slightly different than the others because we
@@ -199,19 +201,26 @@ class SparCCResults(CorrelationCalcs):
         self.otu_ids = vals[0,1:]
         cvals = array([line.strip().split('\t') for line in corr_lines])
         self.cdata = cvals[1:,1:].astype(float) #avoid row,col headers
-        self._getSignificantData(sig_lvl)
+        self._getSignificantData(sig_lvl, pearson_filter)
         self._getLPSAndInteractions()
 
-    def _getSignificantData(self, sig_lvl):
+    def _getSignificantData(self, sig_lvl, pearson_filter):
         '''Find which edges significant at passed level and set self properties.
         '''
         # correlation metrics are symmetric: adjust values of lower triangle  
         # be larger than sig_lvl means only upper triangle values get chosen.
         # data is nxn matrix
         rows,cols = self.data.shape
-        # sig edges is tuple of arrays corresponding to row,col indices
-        self.sig_edges = \
-            ((tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl).nonzero()
+        if pearson_filter is not None:
+            # find edges which are significant enough based on sig_lvl
+            se = (tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl
+            # find edges which are significant enough based on pearson_filter
+            pe = abs(triu(self.cdata, 1))>=pearson_filter
+            self.sig_edges = (se * pe).nonzero()
+        else: 
+            # sig edges is tuple of arrays corresponding to row,col indices
+            self.sig_edges = \
+                ((tril(10*ones((rows, cols)),0)+self.data)<=sig_lvl).nonzero()
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
@@ -547,16 +556,15 @@ class MICResults(CorrelationCalcs):
         self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
         
 
-def sparcc_maker(biom_fp, cval_fp, pval_fp, sig_lvl=.001):
+def sparcc_maker(cval_fp, pval_fp, sig_lvl=.001, pearson_filter=None):
     """convenience function, automate creation of sparcc object."""
-    bt = parse_biom_table(open(biom_fp))
     o = open(cval_fp)
     cval_lines = o.readlines()
     o.close()
     o = open(pval_fp)
     pval_lines = o.readlines()
     o.close()
-    return SparCCResults(pval_lines, cval_lines, sig_lvl)
+    return SparCCResults(pval_lines, cval_lines, sig_lvl, pearson_filter)
 
 def conet_maker(ensemble_fp):
     """convenience function, automate creation of conet object."""
