@@ -854,7 +854,7 @@ def shared_pairs(results_objects):
             results[uids_map[otu1], uids_map[otu2]]+=1
     return triu(results + results.T, 1)
 
-def plot_shared_pairs(spairs, num_tests, out_fp):
+def plot_shared_pairs(spairs, num_tests, out_fp, show=True, save=False):
     '''Make a simple bar plot showing number of shared pairs and record stats.
     '''
     counts = array([(spairs==i).sum() for i in range(1,num_tests+1)])
@@ -867,11 +867,14 @@ def plot_shared_pairs(spairs, num_tests, out_fp):
     plt.xticks(left+.5, left+1)
     plt.yticks(arange(21)*.05)
     plt.grid(True)
-    plt.show()
+    if save:
+        plt.savefig(out_fp+'.pdf')
+    if show:
+        plt.show()
     # write output
     header = '\tCounts'
     lines = [header] + ['%s Rarefaction(s)\t%s' % (i, counts[i-1]) for i in 
         range(1, num_tests+1)] + ['Total\t%s' % counts.sum()]
-    o = open(out_fp, 'w')
+    o = open(out_fp+'.txt', 'w')
     o.writelines('\n'.join(lines))
     o.close()
