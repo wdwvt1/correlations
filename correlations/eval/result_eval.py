@@ -21,6 +21,7 @@ from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
 from matplotlib.pylab import matshow
 from numpy.ma import masked_array
 import matplotlib.pyplot as plt
+from collections import Counter
 
 def hist_of_metrics(data, method_strs):
     '''Plot histograms of each methods value distributions.'''
@@ -878,3 +879,55 @@ def plot_shared_pairs(spairs, num_tests, out_fp, show=True, save=False):
     o = open(out_fp+'.txt', 'w')
     o.writelines('\n'.join(lines))
     o.close()
+
+class HackishEdgeEnsemble:
+    '''Class for combining edges hackishly.'''
+    def __init__(self, results_objects):
+        '''Combine results_objects; produce one set of edges/interactions.'''
+        self.edges = []
+        self.interactions = []
+        # abuse sum to add edges together. non unique edges at this point
+        all_edges = sum([ro.edges for ro in results_objects], [])
+        # use sorted, map, and counter to count the number of edges. this 
+        # ensures o1-o2 is counted the same as o2-o1
+        tmp = Counter(map(lambda x: tuple(sorted(x)), all_edges))
+        # make a list of edges
+        shared_edges = [k for k,v in tmp.iteritems() if v==len(results_objects)]
+        # if the shared edges don't have the same interaction type they will be
+        # excluded
+        for edge in shared_edges:
+            tmp = []
+            for ro in results_objects:
+                try:
+                    i = ro.edges.index(edge)
+                except ValueError: #edge must have been reversed in this ro
+                    i = ro.edges.index(edge[::-1])
+                # append the interaction for the given edge
+                tmp.append(ro.interactions[i])
+            if len(set(tmp))==1: #all interactions were the same
+                self.edges.append(edge)
+                self.interactions.append(tmp[0])
+            else: # interactions were different, not an agreement
+                pass
+        # create list of shared features
+        self.otu1 = []
+        self.otu2 = []
+        for o0, o1 in self.edges:
+            self.otu1.append(o0)
+            self.otu2.append(o1)
+        self.sig_otus = list(set(self.otu1+self.otu2))
+        # set up cvals if possible. 
+        print '***********************'
+        print 'WARNING: cvals being assigned to a hackish edge ensemble.'
+        print 'Since cvals are likely different between ros, using ros[0].'
+        print '***********************'
+        try:
+            ro = results_objects[0]
+            tmp_otu_ids = list(ro.otu_ids)
+            self.cvals = []
+            for e1, e2 in self.edges:
+                i1 = tmp_otu_ids.index(e1)
+                i2 = tmp_otu_ids.index(e2)
+                self.cvals.append(ro.cdata[i1][i2])
+        except AttributeError:
+            pass
