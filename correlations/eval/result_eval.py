@@ -869,7 +869,7 @@ def plot_shared_pairs(spairs, num_tests, out_fp, show=True, save=False):
     plt.yticks(arange(21)*.05)
     plt.grid(True)
     if save:
-        plt.savefig(out_fp+'.pdf')
+        plt.savefig(out_fp+'.pdf', dpi=1500)
     if show:
         plt.show()
     # write output
