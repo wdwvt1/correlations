@@ -17,7 +17,6 @@ from numpy import (array, bincount, arange, histogram, corrcoef, triu_indices,
     where, vstack, logical_xor, searchsorted, zeros, linspace, tril, ones,
     repeat, empty, floor, ceil, hstack, tril_indices, inf, unique, isnan, triu)
 from numpy.ma import masked_array as ma
-from scipy.stats import spearmanr
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 from biom.parse import parse_biom_table
