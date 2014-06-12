@@ -314,6 +314,14 @@ class LSAResults(CorrelationCalcs):
         # loi is generator of indices of lines of interest. we are assuming that
         # lines consists of one header line and then data lines
         num_otus = int((len(lines)-1)**.5)
+        if rtype=='autodetect':
+            tmp = lines[1].split('\t')
+            if tmp[0] == tmp[1]:
+                rtype = 'redundant'
+            elif tmp[0] != tmp[1]:
+                rtype = 'unique'
+            else:
+                raise ValueError('Unknown input type.')
         if rtype=='redundant':
             loi = triu_from_flattened(num_otus,offset=0)
         elif rtype=='unique':
@@ -580,7 +588,7 @@ def rmt_maker(results_fp):
     o.close()
     return RMTResults(lines)
 
-def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001, rtype='redundant'):
+def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001, rtype='autodetect'):
     """convenience function, automate creation of lsa object."""
     o = open(lsa_fp, 'U')
     lines = o.readlines()
