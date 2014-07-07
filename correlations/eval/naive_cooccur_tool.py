@@ -9,7 +9,7 @@ __maintainer__ = "Will Van Treuren"
 __email__ = "wdwvt1@gmail.com"
 __status__ = "Development"
 
-from qiime.pycogent_backports.test import (assign_correlation_pval)
+from qiime.stats import (assign_correlation_pval)
 from qiime.otu_significance import (CORRELATION_TEST_CHOICES)
 from numpy import array, zeros
 
@@ -27,7 +27,7 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
      pval_assignment_method - str, one of parametric_t_distribution, 
      fisher_z_transform, bootstrapped, kendall.
     '''
-    data = array([bt.observationData(i) for i in bt.ObservationIds])
+    data = array([bt.data(i, axis='observation') for i in bt.observation_ids])
     r,c = data.shape
     ccs = zeros((r,r))
     ps = zeros((r,r))
@@ -45,10 +45,10 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
                     perm_test_fn=test_fn, v1=data[o1], v2=data[o2])
                 ps[o1][o2] = pval
     # write values
-    header = '#OTU ID\t'+'\t'.join(bt.ObservationIds)
-    clines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ccs[i])) \
+    header = '#OTU ID\t'+'\t'.join(bt.observation_ids)
+    clines = [header]+[bt.observation_ids[i]+'\t'+'\t'.join(map(str,ccs[i])) \
         for i in range(r)]
-    plines = [header]+[bt.ObservationIds[i]+'\t'+'\t'.join(map(str,ps[i])) \
+    plines = [header]+[bt.observation_ids[i]+'\t'+'\t'.join(map(str,ps[i])) \
         for i in range(r)]
     o = open(cval_fp, 'w')
     o.writelines('\n'.join(clines))
