@@ -1,3 +1,7 @@
+#!/usr/bin/env python
+
+import re
+
 def find_table_number(fp, ind=0):
     '''find the table number from a filepath.'''
     file_name = fp.rsplit('/', 1)[-1]

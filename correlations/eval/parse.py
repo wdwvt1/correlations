@@ -362,7 +362,8 @@ class LSAResults(CorrelationCalcs):
 class NaiveResults(CorrelationCalcs):
     '''Derived class handles calculations for naive correlation method.'''
 
-    def __init__(self, cval_lines, pval_lines, sig_lvl, empirical=False):
+    def __init__(self, cval_lines, pval_lines, sig_lvl, empirical=False, 
+                 corr_filter=None):
         '''Init self by parsing cvals and calculating sig links.'''
         vals = array([line.strip().split('\t') for line in pval_lines])
         cvals = array([line.strip().split('\t') for line in cval_lines])
@@ -376,65 +377,81 @@ class NaiveResults(CorrelationCalcs):
         self.cdata[nan_indicies] = 0.
         
         self.otu_ids = vals[0,1:]
-        self._getSignificantData(sig_lvl, empirical)
+        self._getSignificantData(sig_lvl, empirical, corr_filter)
         self._getLPSAndInteractions()
 
-    def _getSignificantData(self, sig_lvl, empirical):
+    def _getSignificantData(self, sig_lvl, empirical, corr_filter):
         '''Find which edges significant at passed level and set self properties.
         '''
         rows,cols = self.pdata.shape #rows = cols
-        if empirical:
-            mask = zeros((rows,cols))
-            mask[tril_indices(rows,0)] = 1 #preparing mask
-            # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
-            # cvals.sort()
-            cvals = unique(self.cdata[triu_indices(rows,1)])
-            alpha = sig_lvl/2.
-            lb = round(cvals[floor(alpha*len(cvals))],7)
-            ub = round(cvals[-ceil(alpha*len(cvals))],7)
-            if sig_lvl==0.:
-                lb = -inf
-                ub = inf
-            mdata = ma(self.cdata, mask)
-            if lb==ub:
-                # overcount is going to happen 
-                print 'lb, ub: %s %s' % (lb, ub), (mdata>=ub).sum(), (mdata<=lb).sum(), (mdata==lb).sum(), (mdata==ub).sum(), lb==ub
-            # because of the floor and ceil calculations we used >= for the 
-            # upper and lower bound calculations. as an example, assume you have
-            # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
-            # values on each side. Since we don't know what the pvalue is for 
-            # the 2.5th value in the list (it DNE), we round down to the 2nd 
-            # 2nd value for the lower bound, and round up to the 98th value for
-            # the upper bound.
-            upper_sig_edges = where(mdata>=ub,1,0).nonzero()
-            lower_sig_edges = where(mdata<=lb,1,0).nonzero()
-            e1 = hstack([upper_sig_edges[0], lower_sig_edges[0]])
-            e2 = hstack([upper_sig_edges[1], lower_sig_edges[1]])
-            self.sig_edges = (e1,e2)
+        if empirical and corr_filter:
+            raise ValueError('cant have both empirical and pearson filter')
+        
+        if corr_filter is not None:
+            # find edges which are significant enough based on sig_lvl
+            se = self.pdata <= sig_lvl
+            # find edges which are significant enough based on corr_filter
+            pe = abs(self.cdata) >= corr_filter
+            self.sig_edges = triu(se * pe, 1).nonzero()
             self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
             self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
             self.sig_otus = list(set(self.otu1+self.otu2))
             self.edges = zip(self.otu1, self.otu2)
             self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
                 self.sig_edges[1])]
-            #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
-            #print alpha, lb, ub, kfhf
         else:
-            # correlation metrics are symmetric: adjust values of lower triangle  
-            # to be larger than sig_lvl means only upper triangle values get 
-            # chosen.
-            # data is nxn matrix
-            # sig edges is tuple of arrays corresponding to row,col indices
-            tmp = (self.pdata <= sig_lvl)
-            tmp[tril_indices(self.pdata.shape[0], 0)] = 0
-            self.sig_edges = tmp.nonzero()
-            self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
-            self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
-            self.sig_otus = list(set(self.otu1+self.otu2))
-            self.edges = zip(self.otu1, self.otu2)
-            self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
-                self.sig_edges[1])]
-            #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, self.sig_edges[0][:10], self.sig_edges[1][:10]
+            if empirical:
+                mask = zeros((rows,cols))
+                mask[tril_indices(rows,0)] = 1 #preparing mask
+                # cvals = list(set(self.cdata[triu_indices(rows,-1)]))
+                # cvals.sort()
+                cvals = unique(self.cdata[triu_indices(rows,1)])
+                alpha = sig_lvl/2.
+                lb = round(cvals[floor(alpha*len(cvals))],7)
+                ub = round(cvals[-ceil(alpha*len(cvals))],7)
+                if sig_lvl==0.:
+                    lb = -inf
+                    ub = inf
+                mdata = ma(self.cdata, mask)
+                if lb==ub:
+                    # overcount is going to happen 
+                    print 'lb, ub: %s %s' % (lb, ub), (mdata>=ub).sum(), (mdata<=lb).sum(), (mdata==lb).sum(), (mdata==ub).sum(), lb==ub
+                # because of the floor and ceil calculations we used >= for the 
+                # upper and lower bound calculations. as an example, assume you have
+                # 100 pvals, and are choosing sig_lvl=.05. Then you will pick 2.5 
+                # values on each side. Since we don't know what the pvalue is for 
+                # the 2.5th value in the list (it DNE), we round down to the 2nd 
+                # 2nd value for the lower bound, and round up to the 98th value for
+                # the upper bound.
+                upper_sig_edges = where(mdata>=ub,1,0).nonzero()
+                lower_sig_edges = where(mdata<=lb,1,0).nonzero()
+                e1 = hstack([upper_sig_edges[0], lower_sig_edges[0]])
+                e2 = hstack([upper_sig_edges[1], lower_sig_edges[1]])
+                self.sig_edges = (e1,e2)
+                self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+                self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+                self.sig_otus = list(set(self.otu1+self.otu2))
+                self.edges = zip(self.otu1, self.otu2)
+                self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
+                    self.sig_edges[1])]
+                #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, lb, ub, self.sig_edges[0][:10], self.sig_edges[1][:10]
+                #print alpha, lb, ub, kfhf
+            else:
+                # correlation metrics are symmetric: adjust values of lower triangle  
+                # to be larger than sig_lvl means only upper triangle values get 
+                # chosen.
+                # data is nxn matrix
+                # sig edges is tuple of arrays corresponding to row,col indices
+                tmp = (self.pdata <= sig_lvl)
+                tmp[tril_indices(self.pdata.shape[0], 0)] = 0
+                self.sig_edges = tmp.nonzero()
+                self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+                self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+                self.sig_otus = list(set(self.otu1+self.otu2))
+                self.edges = zip(self.otu1, self.otu2)
+                self.pvals = [self.pdata[i][j] for i,j in zip(self.sig_edges[0],
+                    self.sig_edges[1])]
+                #print sig_lvl, len(self.sig_edges[0]), self.cdata.shape, self.sig_edges[0][:10], self.sig_edges[1][:10]
 
 
     def _getLPSAndInteractions(self):
@@ -448,11 +465,6 @@ class NaiveResults(CorrelationCalcs):
             elif i<0:
                 interactions.append('mutualExclusion')
         self.interactions =  interactions
-
-    def changeSignificance(self, sig_lvl, empirical):
-        '''Recalculate all self properties at a new significance level.'''
-        self._getSignificantData(sig_lvl, empirical)
-        self._getLPSAndInteractions()
 
 
 class BrayCurtisResults(CorrelationCalcs):
@@ -577,9 +589,10 @@ class EnsembleResults(CorrelationCalcs):
         for ro in results_objects:
             self.cdata.append(ro.cdata)
             self.pdata.append(ro.pdata)
-            nan_indicies = logical_or(isnan(ro.pdata), isnan(ro.cdata))
-            self.cdata[-1][nan_indicies] = 0.
-            self.pdata[-1][nan_indicies] = 1.
+            # checks are done elsewhere hopefully
+            # nan_indicies = logical_or(isnan(ro.pdata), isnan(ro.cdata))
+            # self.cdata[-1][nan_indicies] = 0.
+            # self.pdata[-1][nan_indicies] = 1.
 
         # this needs to be formalized, but for now we just want to ensure 
         # the features are in the same order.
@@ -629,6 +642,8 @@ class EnsembleResults(CorrelationCalcs):
             for e1, e2 in self.edges:
                 i1 = int(where(self.otu_ids == e1)[0])
                 i2 = int(where(self.otu_ids == e2)[0])
+                if i1 > i2:
+                    i2, i1 = i1, i2
                 for k in range(num_ros):
                     self.cvals[k][tmp_ind] = self.cdata[k][i1][i2]
                 for k in range(num_ros):
@@ -671,7 +686,7 @@ def lsa_maker(lsa_fp, filter_str='ls', sig_lvl=.001, rtype='autodetect'):
     o.close()
     return LSAResults(lines, filter_str, sig_lvl, rtype=rtype)
 
-def naive_maker(cval_fp, pval_fp, sig_lvl=.001):
+def naive_maker(cval_fp, pval_fp, sig_lvl=.001, empirical=False, corr_filter=None):
     """convenience function, automate creation of naive object."""
     o = open(cval_fp, 'U')
     clines = o.readlines()
@@ -679,7 +694,7 @@ def naive_maker(cval_fp, pval_fp, sig_lvl=.001):
     o = open(pval_fp, 'U')
     plines = o.readlines()
     o.close()
-    return NaiveResults(clines, plines, sig_lvl)
+    return NaiveResults(clines, plines, sig_lvl, empirical, corr_filter)
 
 def bray_curtis_maker(dists_fp, sig_lvl=.001):
     """convenience function, automate creation of bray curtis object."""

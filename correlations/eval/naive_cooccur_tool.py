@@ -27,7 +27,7 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
      pval_assignment_method - str, one of parametric_t_distribution, 
      fisher_z_transform, bootstrapped, kendall.
     '''
-    data = array([bt.data(i, axis='observation') for i in bt.observation_ids])
+    data = array([bt.data(i, axis='observation') for i in bt.ids(axis='observation')])
     r,c = data.shape
     ccs = zeros((r,r))
     ps = zeros((r,r))
@@ -45,10 +45,10 @@ def naive_cc_tool(bt, corr_method, pval_assignment_method, cval_fp, pval_fp):
                     perm_test_fn=test_fn, v1=data[o1], v2=data[o2])
                 ps[o1][o2] = pval
     # write values
-    header = '#OTU ID\t'+'\t'.join(bt.observation_ids)
-    clines = [header]+[bt.observation_ids[i]+'\t'+'\t'.join(map(str,ccs[i])) \
+    header = '#OTU ID\t'+'\t'.join(bt.ids(axis='observation'))
+    clines = [header]+[bt.ids(axis='observation')[i]+'\t'+'\t'.join(map(str,ccs[i])) \
         for i in range(r)]
-    plines = [header]+[bt.observation_ids[i]+'\t'+'\t'.join(map(str,ps[i])) \
+    plines = [header]+[bt.ids(axis='observation')[i]+'\t'+'\t'.join(map(str,ps[i])) \
         for i in range(r)]
     o = open(cval_fp, 'w')
     o.writelines('\n'.join(clines))
