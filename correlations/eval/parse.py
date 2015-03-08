@@ -466,6 +466,64 @@ class NaiveResults(CorrelationCalcs):
                 interactions.append('mutualExclusion')
         self.interactions =  interactions
 
+# original - making errors 2/27/2015
+# class BrayCurtisResults(CorrelationCalcs):
+#     '''Derived class handles calculations for bray curtis correlation method.
+
+#     Bray Curtis is different than the other methods in that it doesn't say if 
+#     a linkage is positive or negative (its a dissimilarity measure, not a 
+#     measure of correlation). This means we will take only values on the left 
+#     tail of the distribution.
+#     '''
+
+#     def __init__(self, dissim_lines, sig_lvl):
+#         '''Init self by parsing dissim_lines and calculating sig links.'''
+#         # error check at the beginning avoids computation
+#         if sig_lvl==0.:
+#             raise ValueError('sig_lvl cannot be 0. pass sig_lvl > 0.')
+#         # begin parsing
+#         vals = array([line.strip().split('\t') for line in dissim_lines])
+#         self.data = vals[1:,1:].astype(float) #avoid row,col headers
+#         self.otu_ids = vals[0,1:]
+#         self._getSignificantData(sig_lvl)
+#         # HACK
+#         # since there is no notion of mutual exclusion we have to assign our 
+#         # significant interactions as nothing
+#         #self.interactions = []
+#         self.interactions = ['copresence']* len(self.edges)
+#         if sig_lvl != self.actual_sig_lvl:
+#             print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
+
+#     def _getSignificantData(self, sig_lvl):
+#         '''Find which edges significant at passed level and set self properties.
+#         '''
+#         rows,cols = self.data.shape #rows = cols
+#         mask = zeros((rows,cols))
+#         mask[tril_indices(rows,0)] = 1 #preparing mask
+#         cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
+#         # calculate lower bound, i.e. what value in the distribution of values 
+#         # has sig_lvl fraction of the data lower than or equal to it. this is
+#         # not guaranteed to be precise because of repeated values. for instance 
+#         # assume the distribution of dissimilarity values is:
+#         # [.1, .2, .2, .2, .2, .3, .4, .5, .6, .6] 
+#         # and you want sig_lvl=.2, i.e. you get 20 percent of the linkages as 
+#         # significant. this would result in choosing the score .2 since its the
+#         # second in the ordered list (of 10 elements, 2/10=.2). but, since there
+#         # is no a-priori way to tell which of the multiple .2 linkages are 
+#         # significant, we select all of them, forcing our lower bound to 
+#         # encompass 50 percent of the data. the round call on the lb is to avoid
+#         # documented numpy weirdness where it will misassign >= calls for long
+#         # floats. 
+#         lb = round(cvals[round(sig_lvl*len(cvals))-1],7) #-1 because 0 indexing
+#         mdata = ma(self.data, mask)
+#         self.actual_sig_lvl = \
+#             (mdata <= lb).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
+#         self.sig_edges = where(mdata <= lb, 1, 0).nonzero()
+#         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+#         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+#         self.sig_otus = list(set(self.otu1+self.otu2))
+#         self.edges = zip(self.otu1, self.otu2)
+#         self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
 
 class BrayCurtisResults(CorrelationCalcs):
     '''Derived class handles calculations for bray curtis correlation method.
@@ -498,9 +556,13 @@ class BrayCurtisResults(CorrelationCalcs):
         '''Find which edges significant at passed level and set self properties.
         '''
         rows,cols = self.data.shape #rows = cols
-        mask = zeros((rows,cols))
-        mask[tril_indices(rows,0)] = 1 #preparing mask
-        cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
+        vals = []
+        for row in range(rows):
+            for col in range(row + 1, cols):
+                vals.append(self.data[row][col])
+        vals = array(vals)
+        cvals = unique(vals)
+        # cvals is sorted
         # calculate lower bound, i.e. what value in the distribution of values 
         # has sig_lvl fraction of the data lower than or equal to it. this is
         # not guaranteed to be precise because of repeated values. for instance 
@@ -515,16 +577,68 @@ class BrayCurtisResults(CorrelationCalcs):
         # documented numpy weirdness where it will misassign >= calls for long
         # floats. 
         lb = round(cvals[round(sig_lvl*len(cvals))-1],7) #-1 because 0 indexing
-        mdata = ma(self.data, mask)
-        self.actual_sig_lvl = \
-            (mdata <= lb).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
-        self.sig_edges = where(mdata <= lb, 1, 0).nonzero()
+        self.actual_sig_lvl = (vals <= lb).sum()/float(rows * (rows -1)/2)
+        tmp = where(self.data <= lb, 1, 0).nonzero()
+        inds = tmp[0] < tmp[1]
+        self.sig_edges = tmp[0][inds], tmp[1][inds]
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
-        self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
+        self.cvals = self.data[self.sig_edges[0], self.sig_edges[1]]
 
+# original mic performing strangely 2/28/2015
+# class MICResults(CorrelationCalcs):
+#     """Derived class handles calculations for MIC correlation method."""
+
+#     def __init__(self, mic_lines, feature_names, sig_lvl):
+#         '''Init self by parsing mic lines and feature_names to get order.'''
+#         # error check at the beginning avoids computation
+#         if sig_lvl==0.:
+#             raise ValueError('sig_lvl cannot be 0. pass sig_lvl > 0.')
+#         # no feature identifiers so we can parse mic_lines directly to data
+#         self.data = array([map(float, line.strip().split(' ')) for line in 
+#             mic_lines])
+#         self.otu_ids = feature_names
+#         self._getSignificantData(sig_lvl)
+#         # HACK
+#         # since there is no notion of mutual exclusion we have to assign our 
+#         # significant interactions as nothing
+#         #self.interactions = []
+#         self.interactions = ['copresence']* len(self.edges)
+#         if sig_lvl != self.actual_sig_lvl:
+#             print 'Warning: calculated sig_lvl is %s' % self.actual_sig_lvl
+
+#     def _getSignificantData(self, sig_lvl):
+#         '''Find which edges significant at passed level and set self properties.
+#         '''
+#         rows,cols = self.data.shape #rows = cols
+#         mask = zeros((rows,cols))
+#         mask[tril_indices(rows,0)] = 1 #preparing mask
+#         cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
+#         # calculate upper bound, i.e. what value in the distribution of values 
+#         # has sig_lvl fraction of the data higher than or equal to it. this is
+#         # not guaranteed to be precise because of repeated values. for instance 
+#         # assume the distribution of dissimilarity values is:
+#         # [.1, .2, .2, .2, .2, .3, .4, .5, .6, .6, .6, .6, .6, .6, .7] 
+#         # and you want sig_lvl=.2, i.e. you get 20 percent of the linkages as 
+#         # significant. this would result in choosing the score .6 since its the
+#         # third in the ordered list (of 15 elements, 3/15=.2). but, since there
+#         # is no a-priori way to tell which of the multiple .6 linkages are 
+#         # significant, we select all of them, forcing our lower bound to 
+#         # encompass 7/15ths of the data. the round call on the ub is to avoid
+#         # documented numpy weirdness where it will misassign >= calls for long
+#         # floats. 
+#         ub = round(cvals[-round(sig_lvl*len(cvals))],7)
+#         mdata = ma(self.data, mask)
+#         self.actual_sig_lvl = \
+#             (mdata >= ub).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
+#         self.sig_edges = where(mdata >= ub, 1, 0).nonzero()
+#         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
+#         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
+#         self.sig_otus = list(set(self.otu1+self.otu2))
+#         self.edges = zip(self.otu1, self.otu2)
+#         self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
 
 class MICResults(CorrelationCalcs):
     """Derived class handles calculations for MIC correlation method."""
@@ -551,9 +665,12 @@ class MICResults(CorrelationCalcs):
         '''Find which edges significant at passed level and set self properties.
         '''
         rows,cols = self.data.shape #rows = cols
-        mask = zeros((rows,cols))
-        mask[tril_indices(rows,0)] = 1 #preparing mask
-        cvals = unique(self.data[triu_indices(rows,1)]) # cvals is sorted
+        vals = []
+        for row in range(rows):
+            for col in range(row + 1, cols):
+                vals.append(self.data[row][col])
+        vals = array(vals)
+        cvals = unique(vals)
         # calculate upper bound, i.e. what value in the distribution of values 
         # has sig_lvl fraction of the data higher than or equal to it. this is
         # not guaranteed to be precise because of repeated values. for instance 
@@ -568,15 +685,15 @@ class MICResults(CorrelationCalcs):
         # documented numpy weirdness where it will misassign >= calls for long
         # floats. 
         ub = round(cvals[-round(sig_lvl*len(cvals))],7)
-        mdata = ma(self.data, mask)
-        self.actual_sig_lvl = \
-            (mdata >= ub).sum()/float(mdata.shape[0]*(mdata.shape[0]-1)/2)
-        self.sig_edges = where(mdata >= ub, 1, 0).nonzero()
+        self.actual_sig_lvl = (vals >= ub).sum()/float(rows * (rows -1)/2)
+        tmp = where(self.data >= ub, 1, 0).nonzero()
+        inds = tmp[0] < tmp[1]
+        self.sig_edges = tmp[0][inds], tmp[1][inds]
         self.otu1 = [self.otu_ids[i] for i in self.sig_edges[0]]
         self.otu2 = [self.otu_ids[i] for i in self.sig_edges[1]]
         self.sig_otus = list(set(self.otu1+self.otu2))
         self.edges = zip(self.otu1, self.otu2)
-        self.cvals = mdata[self.sig_edges[0], self.sig_edges[1]]
+        self.cvals = self.data[self.sig_edges[0], self.sig_edges[1]]
 
 class EnsembleResults(CorrelationCalcs):
     '''Edge ensemble class used when building ensemble results objects.'''
